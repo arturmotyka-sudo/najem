@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#2f6f5e">
+<title>Najem</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="house-192.png">
+<link rel="apple-touch-icon" href="house-192.png">
+<style>
+:root{--bg:#f3f4f1;--card:#fff;--ink:#1d2321;--mute:#6b7470;--line:#e3e6e1;--acc:#2f6f5e;--onacc:#fff;--acc2:#e6efeb;--warn:#a5680f;--warnbg:#fbf0dc;--bad:#c62828;--badbg:#fbeaea;--ok:#2f6f5e;--vivid:#16a34a}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ef6b6b;--badbg:#3a1d1f;--ok:#6cc2a6;--vivid:#22c55e}}
+:root[data-theme=dark]{--bg:#111413;--card:#1a1e1d;--ink:#e8ece9;--mute:#97a19c;--line:#2a302e;--acc:#6cc2a6;--onacc:#0d1f19;--acc2:#1e2c27;--warn:#e3ab4f;--warnbg:#2e2617;--bad:#ef6b6b;--badbg:#3a1d1f;--ok:#6cc2a6;--vivid:#22c55e}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;cursor:pointer}
+button,input,select,a{touch-action:manipulation}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 58px 4px;display:flex;align-items:center;justify-content:center}
+.mnav{display:flex;align-items:center;gap:6px}
+.mnav button{background:var(--card);width:38px;height:38px;border-radius:50%;font-size:22px;line-height:1;border:1px solid var(--line);flex:none}
+.mnav .lbl{font-weight:650;font-size:17px;min-width:110px;max-width:calc(100vw - 210px);text-align:center;background:none;border:0;width:auto;height:auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:6px 4px}
+.htitle{font-weight:650;font-size:17px;padding:8px 0}
+.hbtn{position:absolute;right:14px;top:50%;transform:translateY(-35%);border:1px solid var(--line);background:var(--card);width:38px;height:38px;border-radius:50%;font-size:17px;line-height:1}
+main{padding:2px 14px 130px;max-width:560px;margin:0 auto}
+.card{background:var(--card);border-radius:16px;padding:14px 16px;margin:10px 0;border:1px solid var(--line)}
+.card.list{padding:2px 14px;overflow:hidden}
+.center{text-align:center}
+.hero .k{color:var(--mute);font-size:14px;font-weight:600}
+.hero .big{font-size:34px;font-weight:700;letter-spacing:-.5px;margin:2px 0 4px;font-variant-numeric:tabular-nums}
+.hero.ok .big,.hero.ok .status{color:var(--vivid)}.hero.bad .big,.hero.bad .status{color:var(--bad)}
+.status{font-size:13px;font-weight:600;display:block}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.stats div{font-size:11px;color:var(--mute)}.stats b{display:block;font-size:13px;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+h3{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:20px 4px 6px;display:flex;justify-content:space-between;font-weight:600}
+h3 span{text-transform:none;letter-spacing:0}
+.emo{width:36px;height:36px;border-radius:12px;background:var(--acc2);display:grid;place-items:center;font-size:17px;flex:none}
+.cbody{flex:1;min-width:0;display:block}
+.crow{display:flex;justify-content:space-between;gap:8px}
+.cname{font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.sub{font-size:12px;color:var(--mute);display:block}
+p.sub{margin:6px 0}
+.neg{color:var(--bad)}.pos{color:var(--vivid)}.mute{color:var(--mute)}
+.empty{text-align:center;color:var(--mute);padding:40px 10px}
+.banner{border-radius:12px;padding:10px 12px;font-size:13px;margin:8px 0}
+.banner.warn{background:var(--warnbg);color:var(--warn)}.banner.bad{background:var(--badbg);color:var(--bad)}.banner.info{background:var(--acc2);color:var(--acc)}
+.banner button{border:0;background:none;color:inherit;font-weight:650;text-decoration:underline;padding:0;margin-left:4px}
+.fab{position:fixed;right:18px;bottom:86px;width:60px;height:60px;border-radius:50%;background:var(--acc);color:var(--onacc);border:0;font-size:32px;line-height:1;box-shadow:0 6px 18px rgba(0,0,0,.22);z-index:6}
+nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--line);display:flex;z-index:6;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs button{flex:1;border:0;background:none;color:var(--mute);padding:8px 0 12px;font-size:12px;position:relative}
+nav.tabs button.on{color:var(--acc);font-weight:650}
+nav.tabs .ico{display:block;font-size:20px;margin-bottom:1px}
+nav.tabs button.upd::after,nav.tabs button.dot::after{content:'';position:absolute;top:4px;left:calc(50% + 8px);width:12px;height:12px;border-radius:50%;background:var(--bad);border:2px solid var(--card)}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:20;display:none;align-items:flex-end;justify-content:center}
+.ov.open{display:flex}
+.sheet{background:var(--card);width:100%;max-width:560px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:8px 16px calc(24px + env(safe-area-inset-bottom));animation:up .18s ease}
+@keyframes up{from{transform:translateY(40px);opacity:.4}}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
+.shead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.shead h2{font-size:18px;margin:0}
+.x{border:0;background:var(--bg);width:34px;height:34px;border-radius:50%;font-size:15px;flex:none}
+label.f{display:block;font-size:12px;color:var(--mute);margin:14px 0 6px}
+input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 12px;width:100%;min-width:0}
+input:focus,select:focus{outline:2px solid var(--acc);outline-offset:-1px}
+input.amt{font-size:30px;font-weight:700;text-align:center;padding:12px;font-variant-numeric:tabular-nums}
+.seg{display:flex;background:var(--bg);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;padding:9px 4px;border-radius:10px;color:var(--mute)}
+.seg button.on{background:var(--card);color:var(--ink);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--bg);border-radius:999px;padding:8px 12px;font-size:14px}
+.chip.on{background:var(--acc);border-color:var(--acc);color:var(--onacc)}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:14px;font-weight:650;background:var(--acc);color:var(--onacc);margin-top:14px}
+.btn.sec{background:var(--acc2);color:var(--acc)}
+.btn.danger{background:var(--badbg);color:var(--bad)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.kv:last-child{border-bottom:0}
+.tx{display:flex;gap:12px;align-items:center;padding:10px 0;border:0;width:100%;background:none;text-align:left;min-width:0}
+.amtv{font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.plrow{display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+.plrow:last-child{border-bottom:0}
+.plrow .tx{flex:1}
+.plrow.todo .cname{color:var(--ink)}
+.paybtn{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:8px 10px;font-size:13px;white-space:nowrap;flex:none}
+.paybtn.go{background:var(--acc);border-color:var(--acc);color:var(--onacc);font-weight:600}
+.paybtn.done{border:0;background:none;color:var(--vivid);padding:8px 4px}
+.dhead{font-size:12px;color:var(--mute);margin:16px 4px 4px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.dhead .chip{padding:4px 10px;font-size:12px;background:var(--acc);border-color:var(--acc);color:var(--onacc);font-weight:600}
+.tag{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:6px;background:var(--badbg);color:var(--bad);margin-left:6px;vertical-align:1px}
+.tag.g{background:var(--acc2);color:var(--ok)}.tag.n{background:var(--bg);color:var(--mute)}.tag.w{background:var(--warnbg);color:var(--warn)}
+.chk{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px}
+.chk input{width:20px;height:20px;flex:none}
+.itrow{display:grid;grid-template-columns:1fr 112px 42px;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.itrow .chk{grid-column:1/4;padding:0;font-size:13px;color:var(--mute)}
+.ib{border:1px solid var(--line);background:var(--bg);border-radius:10px;height:44px;font-size:15px}
+.ib.del{color:var(--bad)}
+.rrow{display:flex;align-items:center;gap:12px;padding:12px 0;border:0;border-bottom:1px solid var(--line);width:100%;background:none;text-align:left}
+.rrow:last-child{border-bottom:0}
+.rrow.on .cname{color:var(--acc)}
+.dlgwrap{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:30;display:none;align-items:center;justify-content:center;padding:20px}
+.dlgwrap.open{display:flex}
+.dlg{background:var(--card);border-radius:18px;padding:18px;max-width:380px;width:100%;max-height:85vh;overflow:auto}
+.dlg p{margin:0 0 6px}
+.dlg .btn{margin-top:8px}
+.toast{position:fixed;left:50%;bottom:160px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 14px;border-radius:12px;font-size:14px;z-index:40;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90%;text-align:center}
+.toast.show{opacity:1}.toast.act{pointer-events:auto}
+.toast button{margin-left:12px;border:0;background:none;color:inherit;font:inherit;font-weight:700;text-decoration:underline;padding:4px 2px}
+@keyframes msl{from{opacity:.3;transform:translateX(40px)}to{opacity:1;transform:none}}
+@keyframes msr{from{opacity:.3;transform:translateX(-40px)}to{opacity:1;transform:none}}
+#main.mslide-l{animation:msl .22s ease-out}#main.mslide-r{animation:msr .22s ease-out}
+.hint{font-size:12px;color:var(--mute);margin-top:6px;display:block}
+.hint.bad{color:var(--bad)}
+.hidden{display:none!important}
+.ubadge{margin-left:auto;font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.ubadge.new{background:var(--bad);color:#fff}.ubadge.ok{background:var(--acc2);color:var(--ok)}.ubadge.chk{background:var(--line);color:var(--mute)}
+details.help{background:var(--card);border:1px solid var(--line);border-radius:14px;margin:8px 0;padding:0 14px}
+details.help summary{padding:14px 0;font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px}
+details.help summary::-webkit-details-marker{display:none}
+details.help summary::after{content:'›';font-size:22px;color:var(--mute);transform:rotate(90deg);transition:transform .15s;line-height:1}
+details.help[open] summary::after{transform:rotate(-90deg)}
+details.help p,details.help ol,details.help ul{font-size:14px;margin:0 0 12px}
+details.help ol,details.help ul{padding-left:20px}
+details.help li{margin:4px 0}
+/* PIN */
+.lock{position:fixed;inset:0;z-index:28;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+.lockbox{width:100%;max-width:310px;text-align:center}
+.lockbox img{width:76px;height:76px;border-radius:18px}
+.lockbox h2{margin:10px 0 4px;font-size:20px}
+.dots{display:flex;gap:14px;justify-content:center;margin:18px 0 6px;min-height:18px}
+.dots i{width:15px;height:15px;border-radius:50%;border:2px solid var(--acc)}
+.dots i.f{background:var(--acc)}
+.lockmsg{min-height:20px;font-size:13px;color:var(--bad)}
+.lockmsg.info{color:var(--mute)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+.pad button{height:68px;border-radius:18px;font-size:26px;background:var(--card);border:1px solid var(--line);user-select:none;-webkit-user-select:none;transition:transform .06s,background .06s}
+.pad button.pr,.pad button:active{transform:scale(.93);background:var(--acc2)}
+.pad button.ok{background:var(--acc);color:var(--onacc);border-color:var(--acc)}
+.pad button.inv{visibility:hidden}
+.linkbtn{border:0;background:none;color:var(--mute);margin-top:18px;text-decoration:underline;font-size:13px}
+.shake{animation:sh .35s}
+@keyframes sh{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:hidden}
+</style>
+</head>
+<body class="locked">
+<header id="hdr"></header>
+<main id="main"><div class="empty">Wczytywanie…</div></main>
+<button class="fab" id="fab" data-act="add" aria-label="Dodaj" hidden>+</button>
+<nav class="tabs" id="tabs">
+  <button data-act="tab" data-tab="najem"><span class="ico">🏠</span>Najem</button>
+  <button data-act="tab" data-tab="podatek" id="tab-tax"><span class="ico">🧾</span>Podatek</button>
+  <button data-act="tab" data-tab="ustawienia" id="tab-ust"><span class="ico">⚙️</span>Ustawienia</button>
+  <button data-act="tab" data-tab="pomoc" id="tab-help"><span class="ico">❓</span>Pomoc</button>
+</nav>
+<div class="ov" id="ov"><div class="sheet" id="sheet"></div></div>
+<div class="lock" id="lock"><div class="lockbox" id="lockbox">
+  <img src="house-192.png" alt="">
+  <h2 id="lockTitle">Najem</h2>
+  <div class="sub" id="lockSub"></div>
+  <div class="dots" id="dots"></div>
+  <div class="lockmsg" id="lockMsg"></div>
+  <div class="pad" id="pad">
+    <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button>
+    <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button>
+    <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button>
+    <button data-k="del" aria-label="Usuń cyfrę">⌫</button><button data-k="0">0</button><button data-k="ok" class="ok" id="padOk" aria-label="Zatwierdź">✓</button>
+  </div>
+  <button class="linkbtn" id="lockForgot">Nie pamiętam PIN-u</button>
+  <button class="linkbtn" id="lockCancel">Anuluj</button>
+</div></div>
+<div class="dlgwrap" id="dlg"></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="importFile" accept=".html,.htm,.json,text/html,application/json" class="hidden">
+<script id="report-data" type="application/json"></script>
+<script>
+"use strict";
+/* Kopia czystej strony – z niej powstaje plik raportu. */
+const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
+
+const APP_VERSION = '1.0';
+const APP_DATE = '2026-11-20';
+/* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
+const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const zl = g => { const v = Math.round(g || 0); const neg = v < 0; const a = Math.abs(v); const i = String(Math.floor(a / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return (neg ? '-' : '') + i + ',' + String(a % 100).padStart(2, '0') + ' zł'; };
+const parseZl = s => {
+  s = String(s ?? '').replace(/\s/g, '').replace(/zł/gi, '').replace(/,/g, '.').replace(/[−–]/g, '-'); if (s === '') return 0;
+  if (!/^-?\d*\.?\d+([+-]\d*\.?\d+)*$/.test(s)) { const v = Number(s); return isFinite(v) ? Math.round(v * 100) : NaN; }
+  return (s.match(/[+-]?\d*\.?\d+/g) || []).reduce((sum, p) => sum + Math.round(Number(p) * 100), 0);
+};
+const toInput = g => g ? (g / 100).toFixed(2).replace('.', ',') : '';
+const uid = () => (Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
+const pad = n => String(n).padStart(2, '0');
+const monthKey = d => d.getFullYear() + '-' + pad(d.getMonth() + 1);
+const shiftMonth = (k, n) => { const [y, m] = k.split('-').map(Number); return monthKey(new Date(y, m - 1 + n, 1)); };
+const monthDiff = (a, b) => { const [y1, m1] = a.split('-').map(Number), [y2, m2] = b.split('-').map(Number); return (y2 - y1) * 12 + (m2 - m1); };
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const monthLabel = k => { const [y, m] = k.split('-').map(Number); return cap(new Date(y, m - 1, 1).toLocaleDateString('pl-PL', {month:'long', year:'numeric'})); };
+const monthOnly = k => { const [y, m] = k.split('-').map(Number); return new Date(y, m - 1, 1).toLocaleDateString('pl-PL', {month:'long'}); };
+const monthYear = k => monthOnly(k) + ' ' + k.slice(0, 4);
+const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
+const curMonth = () => todayStr().slice(0, 7);
+const lastDay = k => { const [y, m] = k.split('-').map(Number); return k + '-' + pad(new Date(y, m, 0).getDate()); };
+const clampDay = (k, day) => k + '-' + pad(Math.min(Math.max(1, day || 1), Number(lastDay(k).slice(8))));
+const dLabel = d => { const [y, m, dd] = d.split('-').map(Number); const o = {weekday:'long', day:'numeric', month:'long'}; if (String(y) !== todayStr().slice(0, 4)) o.year = 'numeric'; return cap(new Date(y, m - 1, dd).toLocaleDateString('pl-PL', o)); };
+const shortDay = d => { const [y, m, dd] = d.split('-').map(Number); const o = {day:'numeric', month:'short'}; if (String(y) !== todayStr().slice(0, 4)) o.year = 'numeric'; return new Date(y, m - 1, dd).toLocaleDateString('pl-PL', o); };
+const longDay = d => { const [y, m, dd] = d.split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString('pl-PL', {day:'numeric', month:'long', year:'numeric'}); };
+const dateTimeLabel = iso => new Date(iso).toLocaleString('pl-PL', {day:'numeric', month:'long', year:'numeric', hour:'2-digit', minute:'2-digit'});
+const fmtDate = d => { const [y, m, dd] = String(d).split('-').map(Number); return new Date(y, m - 1, dd).toLocaleDateString('pl-PL'); };
+const clone = o => JSON.parse(JSON.stringify(o));
+const sum = (list, f) => list.reduce((s, x) => s + (f ? f(x) : x), 0);
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const lsDel = k => { try { localStorage.removeItem(k); } catch (e) {} };
+const isDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '');
+const plural = (n, one, few, many) => n === 1 ? one : (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) ? few : many;
+const verNum = v => String(v || '0').split('.').map(Number);
+const verNewer = (a, b) => { const x = verNum(a), y = verNum(b); for (let i = 0; i < Math.max(x.length, y.length); i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); } return false; };
+
+/* ikony pozycji dobierane po nazwie */
+const PL_MAP = {'ą':'a','ć':'c','ę':'e','ł':'l','ń':'n','ó':'o','ś':'s','ź':'z','ż':'z'};
+const normName = s => ' ' + String(s || '').toLowerCase().replace(/[ąćęłńóśźż]/g, c => PL_MAP[c]).replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+const ICONS = [
+  ['🔐', ['kaucj']], ['🏢', ['administr', 'wspolnot', 'spoldziel', 'czynsz adm']], ['💡', ['oplat', 'media', 'prad', 'energi']],
+  ['💧', ['woda', 'wody', 'scieki']], ['🔥', ['gaz', 'ogrzew', 'cieplo']], ['🌐', ['internet', 'tv', 'telewiz']], ['🗑️', ['smiec', 'odpad']],
+  ['🛠️', ['remont', 'napraw', 'serwis', 'hydraul', 'elektryk', 'malow']], ['🛡️', ['ubezpiecz', 'polis']], ['🏛️', ['nieruchomosc', 'podatek od']],
+  ['🛋️', ['mebl', 'agd', 'wyposaz', 'pralk', 'lodowk']], ['🧹', ['sprzat']], ['🅿️', ['parking', 'garaz', 'miejsce post']], ['🏦', ['kredyt', 'rata']],
+  ['🏠', ['czynsz', 'najem', 'wynajem', 'mieszkan']]
+];
+const iconFor = (name, kind) => { const n = normName(name); for (const [ic, keys] of ICONS) for (const k of keys) if (n.includes(' ' + k)) return ic; return kind === 'cost' ? '🔧' : '💵'; };
+
+/* ---------- motyw ---------- */
+const themePref = () => { const p = lsGet(K.theme); return ['light', 'dark'].includes(p) ? p : 'auto'; };
+const isDarkNow = () => { const p = themePref(); return p === 'dark' || (p === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches); };
+function applyTheme() {
+  const p = themePref(), r = document.documentElement;
+  if (p === 'auto') delete r.dataset.theme; else r.dataset.theme = p;
+  const dark = isDarkNow(); r.style.colorScheme = dark ? 'dark' : 'light';
+  const m = document.querySelector('meta[name=theme-color]'); if (m) m.content = dark ? '#111413' : '#f3f4f1';
+}
+applyTheme();
+try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { applyTheme(); render(); }); } catch (e) {}
+
+/* ---------- raport (tylko podgląd) ---------- */
+let REPORT = null;
+try { const t = $('#report-data').textContent.trim(); if (t) REPORT = JSON.parse(t); } catch (e) { REPORT = null; }
+
+/* ---------- stan ---------- */
+const S = {tab:'najem', rid:(REPORT && REPORT.rid) || lsGet(K.rid), year:new Date().getFullYear(), sheet:null, remote:null, readOnly:!!REPORT, rd:null};
+let store = null;
+
+/* ---------- pamięć (tylko w telefonie) ----------
+   rentals: {id, name, desc, tenant, from, to, dueDay, items:[{id,name,amount,taxable,from}], genFrom, skip:[], ts}
+   charges: kind 'charge' (comiesięczna należność: r, m, item), 'extra' (jednorazowa należność: r, m, d), 'cost' (koszt: r, d)
+            należność opłacona ma paidOn (data wpłaty) i opcjonalnie paid (wpłacona kwota, gdy inna niż należna)
+   taxes:   'idNajmu|RRRR-MM' (miesiąc wpłat) → {payDate (kiedy chcę zapłacić), paidOn, paidAmount} */
+function LocalStore(initial, persist) {
+  const norm = d => ({settings:Object.assign({taxRate:8, taxDay:20}, d.settings || {}), rentals:d.rentals || {}, charges:d.charges || {}, taxes:d.taxes || {}});
+  let data;
+  if (initial) data = norm(clone(initial));
+  else { let raw = {}; try { const r = lsGet(K.data); if (r) raw = JSON.parse(r); } catch (e) {} data = norm(raw); }
+  const subs = new Set(); let muted = false, dirty = false;
+  const save = () => {
+    if (muted) { dirty = true; return; }
+    if (persist) { try { localStorage.setItem(K.data, JSON.stringify(data)); } catch (e) { toast('Nie udało się zapisać w pamięci telefonu!'); throw e; } }
+    subs.forEach(f => f());
+  };
+  return {
+    get: () => data,
+    getAll: () => clone(data),
+    watch: f => { subs.add(f); return () => subs.delete(f); },
+    batch: fn => { muted = true; try { fn(); } finally { muted = false; if (dirty) { dirty = false; save(); } } },
+    replaceAll: d => { data = norm(d); save(); },
+    saveSettings: s => { data.settings = s; save(); },
+    saveRental: r => { data.rentals[r.id] = r; save(); },
+    deleteRental: id => {
+      delete data.rentals[id];
+      for (const [k, c] of Object.entries(data.charges)) if (c.r === id) delete data.charges[k];
+      for (const k of Object.keys(data.taxes)) if (k.startsWith(id + '|')) delete data.taxes[k];
+      save();
+    },
+    saveCharge: c => { data.charges[c.id] = c; save(); },
+    deleteCharge: id => { delete data.charges[id]; save(); },
+    saveTax: (k, v) => { data.taxes[k] = v; save(); },
+    deleteTax: k => { delete data.taxes[k]; save(); },
+    hasData: () => Object.keys(data.rentals).length > 0
+  };
+}
+const D = () => store.get();
+function write(fn, okMsg) { try { fn(); if (okMsg) toast(okMsg); return true; } catch (e) { toast('Nie udało się zapisać.'); render(); return false; } }
+
+/* ---------- dane pomocnicze ---------- */
+const rentals = () => Object.values(D().rentals).sort((a, b) => (a.ts || 0) - (b.ts || 0));
+const curR = () => { const l = rentals(); return l.find(r => r.id === S.rid) || l[0] || null; };
+const setRid = id => { S.rid = id; if (!REPORT) lsSet(K.rid, id); };
+const chargesOf = rid => Object.values(D().charges).filter(c => c.r === rid);
+const isIncome = c => c.kind === 'charge' || c.kind === 'extra';
+const paidAmt = c => c.paid ?? c.amount;
+const dueOf = c => { if (c.kind === 'extra') return c.d; const r = D().rentals[c.r]; return clampDay(c.m, (r && r.dueDay) || 10); };
+const shownDate = c => c.kind === 'cost' ? c.d : (c.paidOn || (c.kind === 'extra' ? c.d : c.m + '-01'));
+const rentalEnded = r => r.to && r.to < todayStr();
+const rentalPeriod = r => `od ${longDay(r.from)}` + (r.to ? ` do ${longDay(r.to)}` : ' · na czas nieokreślony');
+const monthlyTotal = r => sum(r.items || [], it => it.amount || 0);
+
+/* ---------- comiesięczne należności: tworzą się same 1. dnia miesiąca ---------- */
+function ensureCharges() {
+  if (REPORT || !store) return 0;
+  const d = D(), cm = curMonth(); let n = 0;
+  const have = new Set(Object.values(d.charges).filter(c => c.kind === 'charge').map(c => c.r + '|' + c.m + '|' + c.item));
+  store.batch(() => {
+    for (const r of Object.values(d.rentals)) {
+      const fromM = r.from.slice(0, 7);
+      const start = r.genFrom && r.genFrom > fromM ? r.genFrom : fromM;
+      const end = r.to && r.to.slice(0, 7) < cm ? r.to.slice(0, 7) : cm;
+      const skip = new Set(r.skip || []);
+      for (let m = start; m <= end; m = shiftMonth(m, 1)) for (const it of r.items || []) {
+        if (!it.amount || (it.from && m < it.from)) continue;
+        const k = r.id + '|' + m + '|' + it.id;
+        if (have.has(k) || skip.has(m + '|' + it.id)) continue;
+        store.saveCharge({id:uid(), kind:'charge', r:r.id, m, item:it.id, name:it.name, amount:it.amount, taxable:!!it.taxable, ts:Date.now()});
+        have.add(k); n++;
+      }
+    }
+  });
+  return n;
+}
+
+/* ---------- podatek: ryczałt od wpłat z danego miesiąca, płatny w następnym (do 20.) ---------- */
+const taxRate = () => { const v = Number(D().settings.taxRate); return isFinite(v) && v > 0 ? v : 8; };
+const taxDay = () => Math.min(20, Math.max(1, Number(D().settings.taxDay) || 20));
+const taxDeadline = m => clampDay(shiftMonth(m, 1), 20);
+const taxDefault = m => clampDay(shiftMonth(m, 1), taxDay());
+// podstawa i podatek zaokrąglone do pełnych złotych
+const taxOf = base => Math.round(Math.round(base / 100) * taxRate() / 100) * 100;
+const rateLabel = () => String(taxRate()).replace('.', ',') + '%';
+const taxKey = (rid, m) => rid + '|' + m;
+const taxPayments = (rid, m) => chargesOf(rid).filter(c => isIncome(c) && c.taxable && c.paidOn && c.paidOn.slice(0, 7) === m);
+function taxEntries(rid) {
+  const ms = new Set();
+  for (const c of chargesOf(rid)) if (isIncome(c) && c.taxable && c.paidOn) ms.add(c.paidOn.slice(0, 7));
+  for (const k of Object.keys(D().taxes)) { const i = k.lastIndexOf('|'); if (k.slice(0, i) === rid) ms.add(k.slice(i + 1)); }
+  const out = [], cm = curMonth();
+  for (const m of ms) {
+    const rec = D().taxes[taxKey(rid, m)] || {};
+    const base = sum(taxPayments(rid, m), paidAmt), calc = taxOf(base);
+    const paid = !!rec.paidOn;
+    const amount = paid ? (rec.paidAmount ?? calc) : calc;
+    if (!amount && !paid) continue;
+    out.push({rid, m, base, calc, amount, rec, paid, open:m >= cm, date:rec.paidOn || rec.payDate || taxDefault(m),
+              late:!paid && todayStr() > taxDeadline(m), changed:paid && rec.paidAmount !== undefined && rec.paidAmount !== calc});
+  }
+  return out.sort((a, b) => b.m.localeCompare(a.m));
+}
+const allTaxes = () => rentals().flatMap(r => taxEntries(r.id).map(x => Object.assign(x, {rname:r.name})));
+const taxTodoAll = () => allTaxes().filter(x => !x.paid && !x.open);
+
+/* ---------- render ---------- */
+let lastMain = '', pending = false;
+function render() { if (!store) return; renderHeader(); renderMain(); renderChrome(); }
+const themeBtn = () => `<button class="hbtn" data-act="theme" aria-label="${isDarkNow() ? 'Przełącz na jasny' : 'Przełącz na ciemny'}">${isDarkNow() ? '🌙' : '☀️'}</button>`;
+function renderHeader() {
+  const rl = rentals(); let html;
+  if (S.tab === 'najem' && rl.length) {
+    const r = curR(), many = rl.length > 1;
+    html = `<div class="mnav">${many ? '<button data-act="rprev" aria-label="Poprzedni najem">‹</button>' : ''}<button class="lbl" data-act="rpick">${esc(r.name)} ▾</button>${many ? '<button data-act="rnext" aria-label="Następny najem">›</button>' : ''}</div>`;
+  } else if (S.tab === 'podatek') {
+    html = `<div class="mnav"><button data-act="yprev" aria-label="Poprzedni rok">‹</button><button class="lbl" data-act="ynow">Podatek ${S.year}</button><button data-act="ynext" aria-label="Następny rok">›</button></div>`;
+  } else html = `<div class="htitle">${S.tab === 'ustawienia' ? 'Ustawienia' : S.tab === 'pomoc' ? 'Pomoc' : 'Najem'}</div>`;
+  html += themeBtn();
+  const h = $('#hdr'); if (h.innerHTML !== html) h.innerHTML = html;
+}
+function renderChrome() {
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
+  $('#tab-ust').classList.toggle('hidden', !!REPORT);
+  $('#tab-help').classList.toggle('upd', !!(S.remote && !S.remote.error && verNewer(S.remote.version, APP_VERSION)));
+  $('#tab-tax').classList.toggle('dot', taxTodoAll().length > 0);
+  $('#fab').hidden = !(S.tab === 'najem' && curR() && !S.readOnly);
+}
+function renderMain(force) {
+  const main = $('#main'), ae = document.activeElement;
+  if (!force && main.contains(ae) && ae.matches('input,select,textarea')) { pending = true; return; }
+  const html = mainHtml();
+  if (force || html !== lastMain) { main.innerHTML = html; lastMain = html; }
+  pending = false;
+}
+document.addEventListener('focusout', () => setTimeout(() => { if (pending) renderMain(); }, 60));
+
+function backupBanner() {
+  if (REPORT || !store.hasData()) return '';
+  const last = lsGet(K.exp), days = last ? Math.floor((Date.now() - Number(last)) / 864e5) : null;
+  if (days !== null && days < 7) return '';
+  return `<div class="banner info">💾 ${days === null ? 'Nie masz jeszcze kopii danych.' : `Ostatnia kopia ${days} dni temu.`}<button data-act="report">Wyślij raport</button></div>`;
+}
+function mainHtml() {
+  let b = REPORT ? `<div class="banner info">📄 Raport z ${esc(dateTimeLabel(REPORT.exportedAt))} – tylko podgląd</div>` : '';
+  if (S.tab === 'ustawienia') return b + settingsHtml();
+  if (S.tab === 'pomoc') return b + helpHtml();
+  if (!rentals().length) return b + onboardHtml();
+  b += backupBanner();
+  if (S.tab === 'podatek') return b + taxTabHtml();
+  return b + rentalHtml(curR());
+}
+function onboardHtml() {
+  return `<div class="card center" style="padding:28px 16px"><div style="font-size:46px">🏠</div><h2 style="margin:8px 0 4px">Witaj 👋</h2>
+  <p class="sub">Dodaj swój pierwszy najem: czego dotyczy, od kiedy do kiedy i ile najemca płaci co miesiąc. Należności będą się pojawiać same na początku każdego miesiąca, a podatek policzy się z wpłat.</p>
+  ${S.readOnly ? '' : `<button class="btn" data-act="addrental">+ Dodaj najem</button><button class="btn sec" data-act="import">📥 Mam już kopię – wczytaj z pliku</button>`}</div>`;
+}
+
+/* ekran najmu */
+function rentalHtml(r) {
+  const today = todayStr(), y = today.slice(0, 4), ch = chargesOf(r.id);
+  const unpaid = ch.filter(c => isIncome(c) && !c.paidOn);
+  const due = sum(unpaid, c => c.amount), over = unpaid.filter(c => today > dueOf(c)), overSum = sum(over, c => c.amount);
+  const taxes = taxEntries(r.id), taxTodo = taxes.filter(t => !t.paid && !t.open);
+  const incY = sum(ch.filter(c => isIncome(c) && c.paidOn && c.paidOn.startsWith(y)), paidAmt);
+  const taxY = sum(taxes.filter(t => t.m.startsWith(y)), t => t.amount);
+  const costY = sum(ch.filter(c => c.kind === 'cost' && c.d.startsWith(y)), c => c.amount);
+  const cls = over.length ? 'bad' : due ? '' : 'ok';
+  let h = `<div class="card hero ${cls}"><div class="k">Najemca ma do zapłaty</div><div class="big">${zl(due)}</div>
+    ${over.length ? `<span class="status">⚠️ po terminie: ${zl(overSum)}</span>` : due ? `<span class="sub">w terminie – najbliższy ${shortDay(unpaid.map(dueOf).sort()[0])}</span>` : `<span class="status">✓ Wszystko opłacone</span>`}
+    <div class="stats"><div>Wpłynęło ${y}<b class="pos">${zl(incY)}</b></div><div>Podatek<b>${zl(taxY)}</b></div><div>Koszty<b>${zl(costY)}</b></div><div>Zostaje<b>${zl(incY - taxY - costY)}</b></div></div>
+    ${taxTodo.length ? `<div class="sub neg" style="margin-top:8px">🧾 Podatek do zapłaty: <b>${zl(sum(taxTodo, t => t.amount))}</b> · ${taxTodo.some(t => t.late) ? 'po terminie!' : 'termin ' + shortDay(taxTodo.map(t => taxDeadline(t.m)).sort()[0])}</div>` : ''}</div>`;
+  // karta najmu
+  h += `<button class="card" style="display:block;width:100%;text-align:left" data-act="redit" data-id="${esc(r.id)}">
+    <div class="crow"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">✏️ edytuj</span></div>
+    ${r.desc ? `<span class="sub" style="color:var(--ink);margin-top:2px">${esc(r.desc)}</span>` : ''}
+    ${r.tenant ? `<span class="sub">👤 ${esc(r.tenant)}</span>` : ''}
+    <span class="sub">📅 ${esc(rentalPeriod(r))} · płatne do ${r.dueDay || 10}. dnia</span>
+    <span class="sub">💵 ${(r.items || []).filter(i => i.amount).map(i => `${esc(i.name)} ${zl(i.amount)}${i.taxable ? '' : ' (bez podatku)'}`).join(' · ') || 'brak kwot'}${(r.items || []).filter(i => i.amount).length > 1 ? ` · razem <b>${zl(monthlyTotal(r))}</b>` : ''}</span></button>`;
+  // lista: najnowsze na górze
+  const entries = [];
+  for (const c of ch) entries.push({t:c.kind === 'cost' ? 'cost' : 'charge', d:shownDate(c), c, ts:c.ts || 0});
+  for (const x of taxes) entries.push({t:'tax', d:x.date, x, ts:0});
+  const ord = e => e.t === 'tax' ? 0 : e.t === 'charge' ? (e.c.paidOn ? 2 : 1) : 3;
+  entries.sort((a, b) => b.d.localeCompare(a.d) || ord(a) - ord(b) || (a.c && b.c ? (a.c.name || '').localeCompare(b.c.name || '') : 0));
+  if (!entries.length) return h + `<div class="empty">Brak wpisów. ${r.from > today ? `Pierwsze należności pojawią się ${longDay(r.from.slice(0, 7) + '-01')}.` : 'Uzupełnij kwoty w najmie (✏️ edytuj).'}</div>`;
+  h += `<h3>Wpłaty, podatek i koszty</h3>`;
+  let i = 0;
+  while (i < entries.length) {
+    const d = entries[i].d, grp = [];
+    while (i < entries.length && entries[i].d === d) grp.push(entries[i++]);
+    const open = grp.filter(e => e.t === 'charge' && !e.c.paidOn);
+    h += `<div class="dhead"><span>${esc(dLabel(d))}${d === today ? ' · dziś' : ''}</span>${open.length > 1 && !S.readOnly ? `<button class="chip" data-act="paidall" data-d="${d}">💰 Wpłynęło wszystko</button>` : ''}</div>`;
+    h += `<div class="card list">${grp.map(rowHtml).join('')}</div>`;
+  }
+  return h;
+}
+function rowHtml(e) {
+  const today = todayStr();
+  if (e.t === 'tax') {
+    const x = e.x;
+    const sub = x.paid ? `zapłacono${x.changed ? '<span class="tag w">wpłaty się zmieniły</span>' : ''}`
+      : x.open ? `naliczany – ${monthOnly(x.m)} jeszcze trwa`
+      : `${x.rec.payDate ? 'zaplanowany · ' : ''}termin ${shortDay(taxDeadline(x.m))}${x.late ? '<span class="tag">po terminie</span>' : ''}`;
+    const btn = S.readOnly ? '' : x.paid ? `<span class="paybtn done">✓</span>` : x.open ? '' : `<button class="paybtn go" data-act="taxpaid" data-r="${esc(x.rid)}" data-m="${x.m}">✓ Zapłacone</button>`;
+    return `<div class="plrow"><button class="tx" data-act="tax" data-r="${esc(x.rid)}" data-m="${x.m}"><span class="emo">🧾</span><span class="cbody"><span class="crow"><span class="cname">Podatek za ${esc(monthYear(x.m))}</span><span class="amtv ${x.paid ? '' : 'neg'}">−${zl(x.amount)}</span></span><span class="sub">${rateLabel()} od ${zl(x.base)} · ${sub}</span></span></button>${btn}</div>`;
+  }
+  const c = e.c;
+  if (e.t === 'cost') return `<div class="plrow"><button class="tx" data-act="cost" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'cost')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name || 'Koszt')}</span><span class="amtv neg">−${zl(c.amount)}</span></span><span class="sub">koszt${c.note ? ' · ' + esc(c.note) : ''}</span></span></button></div>`;
+  const paid = !!c.paidOn, due = dueOf(c), late = !paid && today > due;
+  let sub = c.kind === 'charge' ? `za ${esc(monthYear(c.m))}` : 'jednorazowo';
+  if (!paid) sub += ` · termin ${shortDay(due)}` + (late ? '<span class="tag">po terminie</span>' : '');
+  else if (c.paid !== undefined && c.paid !== c.amount) sub += `<span class="tag w">wpłacono ${zl(c.paid)} z ${zl(c.amount)}</span>`;
+  if (!c.taxable) sub += '<span class="tag n">bez podatku</span>';
+  const btn = S.readOnly ? '' : paid ? `<span class="paybtn done">✓</span>` : `<button class="paybtn go" data-act="paid" data-id="${esc(c.id)}">💰 Wpłynęło</button>`;
+  return `<div class="plrow ${paid ? '' : 'todo'}"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'charge')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv ${paid ? 'pos' : ''}">+${zl(paid ? paidAmt(c) : c.amount)}</span></span><span class="sub">${sub}</span></span></button>${btn}</div>`;
+}
+
+/* zakładka Podatek */
+function taxTabHtml() {
+  const y = String(S.year), all = allTaxes().filter(x => x.m.startsWith(y));
+  const base = sum(all, x => x.base), tax = sum(all, x => x.amount), paid = sum(all.filter(x => x.paid), x => x.amount);
+  let h = `<div class="card hero ${tax - paid ? '' : 'ok'}"><div class="k">Podatek za ${y} (${rateLabel()})</div><div class="big">${zl(tax)}</div>
+    <div class="stats" style="grid-template-columns:repeat(3,1fr)"><div>Przychód<b>${zl(base)}</b></div><div>Zapłacono<b class="pos">${zl(paid)}</b></div><div>Pozostało<b class="${tax - paid ? 'neg' : ''}">${zl(tax - paid)}</b></div></div></div>`;
+  if (base > 10000000) h += `<div class="banner warn">Przychód z najmu w ${y} przekracza 100 000 zł – od nadwyżki ryczałt wynosi 12,5%. Stawkę zmienisz w Ustawieniach.</div>`;
+  if (!all.length) return h + `<div class="empty">Brak wpłat w ${y}. Podatek pojawi się po oznaczeniu pierwszej wpłaty (💰 Wpłynęło).</div>`;
+  const months = [...new Set(all.map(x => x.m))].sort().reverse();
+  for (const m of months) {
+    const list = all.filter(x => x.m === m), tot = sum(list, x => x.amount), todo = list.filter(x => !x.paid);
+    const open = m >= curMonth(), late = todo.some(x => x.late);
+    const status = !todo.length ? `<span class="pos">✓ zapłacony</span>` : open ? `naliczany – ${monthOnly(m)} trwa` : `<span class="neg">do zapłaty do ${shortDay(taxDeadline(m))}</span>${late ? '<span class="tag">po terminie</span>' : ''}`;
+    h += `<h3>Za ${esc(monthYear(m))}<span>${zl(tot)}</span></h3><div class="card list">
+      ${list.map(x => `<div class="plrow"><button class="tx" data-act="tax" data-r="${esc(x.rid)}" data-m="${m}"><span class="emo">🏠</span><span class="cbody"><span class="crow"><span class="cname">${esc(x.rname)}</span><span class="amtv">${zl(x.amount)}</span></span><span class="sub">od ${zl(x.base)} · ${x.paid ? `zapłacono ${shortDay(x.rec.paidOn)}` : x.rec.payDate ? `planuję ${shortDay(x.rec.payDate)}` : `domyślnie ${shortDay(taxDefault(m))}`}${x.changed ? '<span class="tag w">wpłaty się zmieniły</span>' : ''}</span></span></button>${x.paid ? '<span class="paybtn done">✓</span>' : ''}</div>`).join('')}
+      <div class="kv"><span class="sub" style="font-size:13px">${status}</span>${todo.length && !open && !S.readOnly ? `<button class="paybtn go" data-act="taxpaidm" data-m="${m}">✓ Zapłacone</button>` : ''}</div></div>`;
+  }
+  return h;
+}
+
+/* Ustawienia */
+function settingsHtml() {
+  const st = D().settings, rl = rentals();
+  const last = lsGet(K.exp);
+  let h = `<h3>Najmy</h3><div class="card list">${rl.map(r => `<button class="rrow" data-act="redit" data-id="${esc(r.id)}"><span class="emo">🏠</span><span class="cbody"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">${esc(r.desc || rentalPeriod(r))}</span></span><span class="amtv">${zl(monthlyTotal(r))}</span></button>`).join('') || '<p class="sub" style="padding:10px 0">Brak najmów.</p>'}</div>
+  <button class="btn sec" data-act="addrental">+ Dodaj najem</button>
+  <h3>Podatek</h3><div class="card">
+    <div class="row2"><div><label class="f" style="margin-top:0">Stawka ryczałtu (%)</label><input id="set-rate" inputmode="decimal" value="${esc(String(st.taxRate).replace('.', ','))}"></div>
+    <div><label class="f" style="margin-top:0">Domyślny dzień zapłaty</label><input id="set-day" type="number" min="1" max="20" value="${esc(st.taxDay)}"></div></div>
+    <span class="hint">Podatek za dany miesiąc płacisz w kolejnym, najpóźniej do 20. Datę możesz też zmienić przy każdym podatku osobno.</span>
+    <button class="btn" data-act="setsave">Zapisz</button></div>
+  <h3>Wygląd</h3><div class="card"><div class="seg">${[['auto', '🌓 Auto'], ['light', '☀️ Jasny'], ['dark', '🌙 Ciemny']].map(([v, l]) => `<button class="${themePref() === v ? 'on' : ''}" data-act="settheme" data-v="${v}">${l}</button>`).join('')}</div></div>
+  <h3>PIN</h3><div class="card">`;
+  if (!pinSupported()) h += `<p class="sub">PIN działa tylko po otwarciu aplikacji z adresu https.</p>`;
+  else if (pinRec()) h += `<p class="sub">PIN jest włączony.</p><div class="row2"><button class="btn sec" data-act="pinchange">Zmień PIN</button><button class="btn danger" data-act="pinoff">Wyłącz PIN</button></div>`;
+  else h += `<p class="sub">PIN jest wyłączony – każdy z Twoim telefonem może zajrzeć do danych.</p><button class="btn" data-act="pinon">Włącz PIN</button>`;
+  h += `</div><h3>Kopia danych</h3><div class="card">
+    <p class="sub">Dane są zapisane tylko w tym telefonie. ${last ? `Ostatnia kopia: ${esc(dateTimeLabel(Number(last)))}.` : 'Nie masz jeszcze kopii.'}</p>
+    <button class="btn" data-act="report">💾 Wyślij raport (kopia)</button>
+    <button class="btn sec" data-act="xlsx">📊 Eksport do Excela</button>
+    <button class="btn sec" data-act="import">📥 Wczytaj z pliku</button></div>`;
+  return h;
+}
+
+/* Pomoc */
+function helpHtml() {
+  return `<details class="help" open><summary>🔄 Aktualizacja ${S.remote && !S.remote.error ? (verNewer(S.remote.version, APP_VERSION) ? '<span class="ubadge new">nowa wersja</span>' : '<span class="ubadge ok">aktualna</span>') : '<span class="ubadge chk">sprawdzam</span>'}</summary>${updateHtml()}</details>
+  <details class="help"><summary>🏠 Najmy</summary>
+    <p>Każdy najem ma swoją stronę. Przełączasz je strzałkami ‹ › na górze, przeciągnięciem palca po karcie „Najemca ma do zapłaty” albo stukając w nazwę (lista wszystkich najmów).</p>
+    <p>W najmie wpisujesz: nazwę, czego dotyczy (np. adres, miejsce postojowe), najemcę, okres (od – do; puste „do” = na czas nieokreślony), dzień płatności i pozycje płacone co miesiąc, np. <b>Czynsz najmu</b> i <b>Opłaty</b>. Przy każdej pozycji zaznaczasz, czy liczy się do podatku.</p>
+    <p>Zmiana kwoty działa od kolejnych należności; aplikacja zapyta, czy zmienić ją też w już utworzonych, jeszcze nieopłaconych.</p></details>
+  <details class="help"><summary>💰 Należności i wpłaty</summary>
+    <ul><li>1. dnia każdego miesiąca pojawiają się należności z najmu (przy dacie 1. dnia), z terminem płatności.</li>
+    <li>Gdy pieniądze wpłyną, stuknij <b>💰 Wpłynęło</b> – wpłata zapisze się z dzisiejszą datą i przeskoczy pod ten dzień.</li>
+    <li>Gdy kilka pozycji z jednego miesiąca jest nieopłaconych, przy dacie jest przycisk <b>Wpłynęło wszystko</b>.</li>
+    <li>Stuknij pozycję, żeby zmienić datę lub kwotę wpłaty (np. wpłata częściowa), cofnąć wpłatę albo usunąć należność.</li>
+    <li>Jednorazową należność (np. dopłata za media, kaucja) dodasz zielonym przyciskiem <b>+</b>. Kaucji zwykle nie liczy się do podatku – odznacz to pole.</li>
+    <li>Lista jest posortowana od najnowszych dat. Na górze są zaplanowane podatki, potem bieżące należności.</li></ul></details>
+  <details class="help"><summary>🧾 Podatek</summary>
+    <ul><li>Podatek to ${rateLabel()} (ryczałt) od wpłat, które wpłynęły w danym miesiącu. Liczy się po dacie wpłaty, nie po miesiącu, za który jest czynsz.</li>
+    <li>Płacisz go w kolejnym miesiącu, najpóźniej do 20. (wpłata w lutym → podatek do 20 marca).</li>
+    <li>Domyślna data zapłaty jest w Ustawieniach. Stuknij podatek, żeby ustawić własną datę albo oznaczyć zapłatę z inną datą.</li>
+    <li>Kwota jest zaokrąglona do pełnych złotych. Podatek za bieżący miesiąc rośnie z każdą wpłatą („naliczany”).</li>
+    <li>W zakładce <b>Podatek</b> widzisz wszystkie najmy razem, miesiąc po miesiącu, i możesz jednym przyciskiem oznaczyć cały miesiąc jako zapłacony.</li>
+    <li>Powyżej 100 000 zł przychodu w roku stawka od nadwyżki to 12,5% – wtedy zmień stawkę w Ustawieniach.</li>
+    <li>Czy opłaty (media) liczyć do podatku, zależy od umowy – w razie wątpliwości zapytaj księgową.</li></ul></details>
+  <details class="help"><summary>🔧 Koszty</summary>
+    <p>Koszty (naprawy, wyposażenie, ubezpieczenie, czynsz do wspólnoty) dodajesz przyciskiem <b>+</b>. Przy ryczałcie nie zmniejszają podatku – służą do policzenia, ile naprawdę zostaje z najmu („Zostaje” na górze).</p></details>
+  <details class="help"><summary>💾 Kopia danych i Excel</summary>
+    <p>Dane są tylko w tym telefonie. Odinstalowanie aplikacji lub wyczyszczenie danych Chrome może je usunąć – regularnie wysyłaj raport (Ustawienia → Wyślij raport). To jeden plik HTML: na komputerze otworzysz go jako podgląd, a w telefonie wczytasz przyciskiem „Wczytaj z pliku”.</p>
+    <p>Eksport do Excela zawiera wpłaty, podatki, koszty i nieopłacone należności ze wszystkich najmów.</p></details>`;
+}
+function updateHtml() {
+  const r = S.remote; let info;
+  if (REPORT) return `<p class="sub">Wersja ${APP_VERSION}</p>`;
+  if (!r) info = `<p class="sub">Sprawdzam najnowszą wersję…</p>`;
+  else if (r.error) info = `<p class="sub">Nie udało się sprawdzić – brak internetu?</p><button class="btn sec" data-act="updcheck">🔄 Sprawdź ponownie</button>`;
+  else if (verNewer(r.version, APP_VERSION)) info = `<div class="kv"><span>Najnowsza</span><b class="pos">${esc(r.version)} (${esc(fmtDate(r.date))})</b></div>
+      ${(r.changes || []).length ? `<p class="sub"><b>Co nowego:</b><br>${r.changes.map(c => '• ' + esc(c)).join('<br>')}</p>` : ''}
+      <button class="btn" data-act="update">⬇️ Aktualizuj do ${esc(r.version)}</button><span class="hint">Twoje dane zostaną bez zmian.</span>`;
+  else info = `<div class="kv"><span>Najnowsza</span><b>${esc(r.version)}</b></div><p class="sub">✓ Masz aktualną wersję.</p><button class="btn sec" data-act="updcheck">🔄 Sprawdź ponownie</button>`;
+  return `<div class="kv"><span>Twoja wersja</span><b>${APP_VERSION} (${esc(fmtDate(APP_DATE))})</b></div>${info}`;
+}
+async function checkUpdate() {
+  if (REPORT) return;
+  if (!S.remote || S.remote.error) { S.remote = null; if (S.tab === 'pomoc') renderMain(true); }
+  try { const res = await fetch('version.json?t=' + Date.now(), {cache:'no-store'}); if (!res.ok) throw new Error(res.status); S.remote = await res.json(); }
+  catch (e) { S.remote = {error:true}; }
+  render(); if (S.tab === 'pomoc') renderMain(true);
+}
+async function doUpdate() {
+  toast('Aktualizuję…');
+  try {
+    const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.update();
+    if (window.caches) await Promise.all((await caches.keys()).filter(k => k.startsWith('najem-')).map(k => caches.delete(k)));
+  } catch (e) {}
+  setTimeout(() => location.reload(), 300);
+}
+
+/* ---------- okienka ---------- */
+function openSheet(html, ctx) { S.sheet = ctx || {}; $('#sheet').innerHTML = `<div class="grab"></div>` + html; $('#ov').classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeSheet() { $('#ov').classList.remove('open'); $('#sheet').innerHTML = ''; S.sheet = null; S.rd = null; document.body.style.overflow = ''; if (pending) renderMain(); }
+$('#ov').addEventListener('click', e => { if (e.target.id === 'ov') closeSheet(); });
+const head = t => `<div class="shead"><h2>${t}</h2><button class="x" data-act="close" aria-label="Zamknij">✕</button></div>`;
+function choose(text, options) {
+  return new Promise(res => {
+    const d = $('#dlg');
+    d.innerHTML = `<div class="dlg"><p>${esc(text)}</p>${options.map((o, i) => `<button class="btn ${o.cls || ''}" data-r="${i}">${esc(o.label)}</button>`).join('')}<button class="btn sec" data-r="-1">Anuluj</button></div>`;
+    d.classList.add('open');
+    d.onclick = e => { const b = e.target.closest('[data-r]'); if (!b && e.target !== d) return; d.classList.remove('open'); d.onclick = null; res(b ? Number(b.dataset.r) : -1); };
+  });
+}
+const ask = async (text, ok = 'Usuń', danger = true) => (await choose(text, [{label:ok, cls:danger ? 'danger' : ''}])) === 0;
+let toastT;
+function toast(msg, undo) {
+  const t = $('#toast'); t.textContent = msg;
+  if (undo) { const b = document.createElement('button'); b.textContent = 'Cofnij'; b.onclick = () => { clearTimeout(toastT); t.classList.remove('show', 'act'); undo(); }; t.append(b); }
+  t.classList.toggle('act', !!undo); t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show', 'act'), undo ? 5000 : 2600);
+}
+const rentalChips = sel => rentals().length > 1 ? `<label class="f">Najem</label><div class="chips" id="rchips">${rentals().map(r => `<button class="chip ${r.id === sel ? 'on' : ''}" data-act="pickr" data-id="${esc(r.id)}">${esc(r.name)}</button>`).join('')}</div>` : '';
+
+/* wybór najmu */
+function openPick() {
+  const cur = curR();
+  openSheet(head('Najmy') + `<div class="card list" style="margin-top:4px">${rentals().map(r => {
+    const due = sum(chargesOf(r.id).filter(c => isIncome(c) && !c.paidOn), c => c.amount);
+    return `<button class="rrow ${r.id === cur.id ? 'on' : ''}" data-act="rset" data-id="${esc(r.id)}"><span class="emo">🏠</span><span class="cbody"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">${esc(r.desc || r.tenant || rentalPeriod(r))}</span></span>${due ? `<span class="amtv neg">${zl(due)}</span>` : '<span class="pos">✓</span>'}</button>`;
+  }).join('')}</div>${S.readOnly ? '' : '<button class="btn sec" data-act="addrental">+ Nowy najem</button>'}`);
+}
+
+/* najem: dodawanie / edycja */
+function openRental(id) {
+  const r = id && D().rentals[id];
+  S.rd = r ? clone(r) : {id:uid(), name:'', desc:'', tenant:'', from:todayStr(), to:'', dueDay:10,
+    items:[{id:uid(), name:'Czynsz najmu', amount:0, taxable:true}, {id:uid(), name:'Opłaty', amount:0, taxable:true}]};
+  S.rd.isNew = !r;
+  renderRentalSheet();
+}
+function syncRd() {
+  const d = S.rd; if (!d || !$('#rd-name')) return;
+  d.name = $('#rd-name').value; d.desc = $('#rd-desc').value; d.tenant = $('#rd-tenant').value;
+  d.from = $('#rd-from').value; d.to = $('#rd-to').value; d.dueDay = $('#rd-due').value;
+  document.querySelectorAll('[data-it]').forEach(row => {
+    const it = d.items[+row.dataset.it]; if (!it) return;
+    it.name = row.querySelector('.itn').value; it.amountTxt = row.querySelector('.ita').value; it.taxable = row.querySelector('.itt').checked;
+  });
+}
+function renderRentalSheet() {
+  const d = S.rd, ro = S.readOnly;
+  const unpaidOld = d.isNew ? [] : chargesOf(d.id).filter(c => c.kind === 'charge' && !c.paidOn && c.m < curMonth());
+  const am = it => it.amountTxt !== undefined ? it.amountTxt : toInput(it.amount);
+  openSheet(head(d.isNew ? 'Nowy najem' : 'Najem') + `
+    <label class="f">Nazwa</label><input id="rd-name" value="${esc(d.name)}" placeholder="np. Mieszkanie Mokotów">
+    <label class="f">Czego dotyczy</label><input id="rd-desc" value="${esc(d.desc)}" placeholder="np. kawalerka ul. Lipowa 5/12 + piwnica">
+    <label class="f">Najemca</label><input id="rd-tenant" value="${esc(d.tenant)}" placeholder="imię i nazwisko / firma">
+    <div class="row2"><div><label class="f">Od</label><input type="date" id="rd-from" value="${esc(d.from)}"></div><div><label class="f">Do (puste = bezterminowo)</label><input type="date" id="rd-to" value="${esc(d.to || '')}"></div></div>
+    <label class="f">Płatne do dnia miesiąca</label><input type="number" id="rd-due" min="1" max="28" value="${esc(d.dueDay)}">
+    <label class="f">Co miesiąc najemca płaci</label>
+    ${d.items.map((it, i) => `<div class="itrow" data-it="${i}"><input class="itn" value="${esc(it.name)}" placeholder="np. Czynsz najmu"><input class="ita" inputmode="decimal" value="${esc(am(it))}" placeholder="0,00 zł"><button class="ib del" data-act="itdel" data-i="${i}" aria-label="Usuń pozycję">✕</button><label class="chk"><input type="checkbox" class="itt" ${it.taxable ? 'checked' : ''}> liczyć do podatku (${rateLabel()})</label></div>`).join('')}
+    <button class="btn sec" data-act="itadd">+ Dodaj pozycję</button>
+    ${ro ? '' : `<button class="btn" data-act="rsave">${d.isNew ? 'Dodaj najem' : 'Zapisz'}</button>`}
+    ${!ro && unpaidOld.length ? `<button class="btn sec" data-act="rpayold">✓ Zaległe z poprzednich miesięcy (${unpaidOld.length}) – oznacz jako wpłacone w terminie</button>` : ''}
+    ${!ro && !d.isNew ? '<button class="btn danger" data-act="rdel">🗑 Usuń najem</button>' : ''}`);
+}
+async function saveRental() {
+  syncRd(); const d = clone(S.rd), cm = curMonth();
+  d.name = d.name.trim(); d.desc = d.desc.trim(); d.tenant = d.tenant.trim();
+  if (!d.name) { toast('Wpisz nazwę najmu'); return; }
+  if (!isDate(d.from)) { toast('Wpisz datę początku najmu'); return; }
+  if (d.to && !isDate(d.to)) d.to = '';
+  if (d.to && d.to < d.from) { toast('Data końca jest przed datą początku'); return; }
+  d.dueDay = Math.min(28, Math.max(1, Number(d.dueDay) || 10));
+  const items = [];
+  for (const it of d.items) {
+    const a = it.amountTxt !== undefined ? parseZl(it.amountTxt) : it.amount;
+    if (isNaN(a) || a < 0) { toast('Popraw kwotę: ' + (it.name || 'pozycja')); return; }
+    it.name = (it.name || '').trim(); delete it.amountTxt; it.amount = a;
+    if (!it.name && !a) continue;
+    if (!it.name) { toast('Wpisz nazwę pozycji'); return; }
+    items.push(it);
+  }
+  d.items = items;
+  const old = D().rentals[d.id], isNew = !old; delete d.isNew;
+  if (isNew) {
+    d.ts = Date.now(); const fm = d.from.slice(0, 7);
+    if (fm < cm) {
+      const n = monthDiff(fm, cm) + 1;
+      const ch = await choose(`Najem trwa od ${monthLabel(fm)}. Od kiedy dodać comiesięczne należności?`, [{label:`Od początku najmu (${n} ${plural(n, 'miesiąc', 'miesiące', 'miesięcy')})`}, {label:`Od bieżącego miesiąca (${monthLabel(cm)})`}]);
+      if (ch < 0) return;
+      d.genFrom = ch === 0 ? fm : cm;
+    } else d.genFrom = fm;
+  } else {
+    const startM = d.genFrom || d.from.slice(0, 7);
+    for (const it of d.items) if (!old.items.some(o => o.id === it.id) && cm > startM) it.from = cm;
+    // zmiany kwot / nazw w nieopłaconych należnościach
+    const upd = [];
+    for (const it of d.items) {
+      const o = old.items.find(x => x.id === it.id); if (!o || (o.amount === it.amount && o.name === it.name && !!o.taxable === !!it.taxable)) continue;
+      for (const c of chargesOf(d.id)) if (c.kind === 'charge' && c.item === it.id && !c.paidOn && (c.amount !== it.amount || c.name !== it.name || c.taxable !== !!it.taxable)) upd.push([c, it]);
+    }
+    if (upd.length) {
+      const ch = await choose(`Zmienić też w nieopłaconych należnościach (${upd.length})?`, [{label:'Tak, zmień też nieopłacone'}, {label:'Nie, tylko kolejne miesiące', cls:'sec'}]);
+      if (ch < 0) return;
+      if (ch === 0) store.batch(() => { for (const [c, it] of upd) store.saveCharge(Object.assign(clone(c), {amount:it.amount, name:it.name, taxable:!!it.taxable})); });
+    }
+  }
+  if (!write(() => store.saveRental(d))) return;
+  setRid(d.id); closeSheet(); const n = ensureCharges();
+  if (isNew) S.tab = 'najem';
+  toast(isNew ? (n ? `Najem dodany · ${n} ${plural(n, 'należność', 'należności', 'należności')}` : 'Najem dodany') : 'Zapisano');
+  render();
+}
+
+/* należność (comiesięczna lub jednorazowa) */
+function openCharge(id) {
+  const c = D().charges[id]; if (!c) return;
+  const paid = !!c.paidOn, ro = S.readOnly;
+  openSheet(head(esc(c.name)) + `
+    <p class="sub">${c.kind === 'charge' ? `Należność za ${esc(monthYear(c.m))}` : 'Należność jednorazowa'} · termin ${esc(longDay(dueOf(c)))} · ${esc(D().rentals[c.r]?.name || '')}</p>
+    <label class="f">Nazwa</label><input id="pa-name" value="${esc(c.name)}">
+    <label class="f">Kwota należna</label><input class="amt" id="pa-amt" inputmode="decimal" value="${esc(toInput(c.amount))}">
+    <label class="chk"><input type="checkbox" id="pa-tax" ${c.taxable ? 'checked' : ''}> liczyć do podatku (${rateLabel()})</label>
+    <div class="row2"><div><label class="f">Data wpłaty</label><input type="date" id="pa-date" value="${esc(c.paidOn || todayStr())}"></div>
+    <div><label class="f">Kwota wpłacona</label><input id="pa-paid" inputmode="decimal" value="${esc(paid ? toInput(paidAmt(c)) : '')}" placeholder="${esc(toInput(c.amount) || '0,00')}"></div></div>
+    <span class="hint">${paid ? `Wpłynęło ${esc(longDay(c.paidOn))}.` : 'Puste pole kwoty = wpłacona cała należność.'}</span>
+    ${ro ? '' : paid
+      ? `<button class="btn" data-act="pasave" data-id="${esc(id)}">Zapisz</button><button class="btn sec" data-act="paundo" data-id="${esc(id)}">↩️ Cofnij wpłatę (nieopłacone)</button>`
+      : `<button class="btn" data-act="papay" data-id="${esc(id)}">💰 Wpłynęło</button><button class="btn sec" data-act="pasave" data-id="${esc(id)}">Zapisz bez wpłaty</button>`}
+    ${ro ? '' : `<button class="btn danger" data-act="padel" data-id="${esc(id)}">🗑 Usuń należność</button>`}`);
+}
+function readCharge(c, withPay) {
+  const name = $('#pa-name').value.trim(), amt = parseZl($('#pa-amt').value);
+  if (!name) { toast('Wpisz nazwę'); return null; }
+  if (isNaN(amt) || amt <= 0) { toast('Popraw kwotę należną'); return null; }
+  const n = Object.assign(clone(c), {name, amount:amt, taxable:$('#pa-tax').checked});
+  if (withPay) {
+    const d = $('#pa-date').value, pt = $('#pa-paid').value.trim(), p = pt === '' ? amt : parseZl(pt);
+    if (!isDate(d)) { toast('Wpisz datę wpłaty'); return null; }
+    if (isNaN(p) || p <= 0) { toast('Popraw kwotę wpłaconą'); return null; }
+    n.paidOn = d; if (p !== amt) n.paid = p; else delete n.paid;
+  }
+  return n;
+}
+function deleteCharge(c) {
+  const r = D().rentals[c.r], prevR = r ? clone(r) : null;
+  store.batch(() => {
+    store.deleteCharge(c.id);
+    if (c.kind === 'charge' && r) { const nr = clone(r); nr.skip = [...new Set([...(nr.skip || []), c.m + '|' + c.item])]; store.saveRental(nr); }
+  });
+  closeSheet();
+  toast('Usunięto', () => store.batch(() => { store.saveCharge(c); if (prevR) store.saveRental(prevR); }));
+}
+
+/* jednorazowa należność */
+function openExtra() {
+  const r = curR();
+  openSheet(head('Jednorazowa należność') + `
+    <label class="f">Kwota</label><input class="amt" id="ex-amt" inputmode="decimal" placeholder="0,00">
+    <label class="f">Za co</label><input id="ex-name" placeholder="np. dopłata za media, kaucja">
+    <label class="f">Termin płatności</label><input type="date" id="ex-date" value="${todayStr()}">
+    <label class="chk"><input type="checkbox" id="ex-tax" checked> liczyć do podatku (${rateLabel()})</label>
+    ${rentalChips(r.id)}
+    <button class="btn" data-act="exsave">Dodaj</button>`, {r:r.id});
+}
+
+/* koszt */
+function openCost(id) {
+  const c = id ? D().charges[id] : {kind:'cost', r:curR().id, name:'', amount:0, d:todayStr(), note:''};
+  if (!c) return;
+  openSheet(head(id ? 'Koszt' : 'Nowy koszt') + `
+    <label class="f">Kwota</label><input class="amt" id="co-amt" inputmode="decimal" value="${esc(toInput(c.amount))}" placeholder="0,00">
+    <label class="f">Za co</label><input id="co-name" value="${esc(c.name)}" placeholder="np. naprawa pralki, ubezpieczenie">
+    <label class="f">Data</label><input type="date" id="co-date" value="${esc(c.d)}">
+    ${rentalChips(c.r)}
+    <label class="f">Notatka (opcjonalnie)</label><input id="co-note" value="${esc(c.note || '')}">
+    ${S.readOnly ? '' : `<button class="btn" data-act="cosave">Zapisz</button>${id ? `<button class="btn danger" data-act="codel" data-id="${esc(id)}">🗑 Usuń koszt</button>` : ''}`}`, {id:id || null, r:c.r});
+}
+
+/* podatek za miesiąc */
+function openTax(rid, m) {
+  const x = taxEntries(rid).find(t => t.m === m), r = D().rentals[rid]; if (!x || !r) return;
+  const pays = taxPayments(rid, m).sort((a, b) => a.paidOn.localeCompare(b.paidOn));
+  openSheet(head('Podatek za ' + esc(monthYear(m))) + `
+    <p class="sub">${esc(r.name)} · ryczałt ${rateLabel()} od wpłat z ${esc(monthYear(m))}</p>
+    <div class="card list" style="margin:8px 0">${pays.map(c => `<div class="kv"><span>${esc(shortDay(c.paidOn))} · ${esc(c.name)}${c.kind === 'charge' && c.m !== m ? ` <span class="sub" style="display:inline">(za ${esc(monthOnly(c.m))})</span>` : ''}</span><b>${zl(paidAmt(c))}</b></div>`).join('') || '<p class="sub">Brak wpłat liczonych do podatku.</p>'}
+      <div class="kv"><span>Podatek (${rateLabel()}, w pełnych zł)</span><b>${zl(x.calc)}</b></div></div>
+    ${x.changed ? `<div class="banner warn">Zapłacono ${zl(x.amount)}, a z obecnych wpłat wychodzi ${zl(x.calc)}. Sprawdź, czy trzeba dopłacić lub poprawić kwotę.</div>` : ''}
+    <label class="f">Kiedy chcę zapłacić</label><input type="date" id="tx-plan" value="${esc(x.rec.payDate || taxDefault(m))}">
+    <span class="hint" id="tx-hint">Termin: do ${esc(longDay(taxDeadline(m)))}</span>
+    ${x.open ? `<span class="hint">${esc(cap(monthOnly(m)))} jeszcze trwa – kwota może wzrosnąć z kolejnymi wpłatami.</span>` : ''}
+    <div class="row2"><div><label class="f">Data zapłaty</label><input type="date" id="tx-paid" value="${esc(x.rec.paidOn || todayStr())}"></div>
+    <div><label class="f">Zapłacona kwota</label><input id="tx-amt" inputmode="decimal" value="${esc(toInput(x.amount))}"></div></div>
+    ${S.readOnly ? '' : x.paid
+      ? `<button class="btn" data-act="txpay">Zapisz</button><button class="btn sec" data-act="txundo">↩️ Cofnij zapłatę</button>`
+      : `<button class="btn" data-act="txpay">✓ Zapłacone</button><button class="btn sec" data-act="txplan">Zapisz datę (jeszcze nie zapłacone)</button>`}`, {rid, m});
+  txHint();
+}
+function txHint() {
+  const i = $('#tx-plan'), h = $('#tx-hint'); if (!i || !h || !S.sheet) return;
+  const late = i.value && i.value > taxDeadline(S.sheet.m);
+  h.classList.toggle('bad', !!late); h.textContent = (late ? '⚠️ Po terminie! ' : '') + 'Termin: do ' + longDay(taxDeadline(S.sheet.m));
+}
+function markTaxPaid(list, date) {
+  const prev = list.map(x => [taxKey(x.rid, x.m), D().taxes[taxKey(x.rid, x.m)]]);
+  store.batch(() => { for (const x of list) store.saveTax(taxKey(x.rid, x.m), Object.assign({}, x.rec, {paidOn:date, paidAmount:x.calc})); });
+  toast(list.length > 1 ? `Podatek oznaczony jako zapłacony (${list.length})` : 'Podatek oznaczony jako zapłacony', () => store.batch(() => { for (const [k, v] of prev) v ? store.saveTax(k, v) : store.deleteTax(k); }));
+}
+
+/* ---------- raport / excel / import ---------- */
+async function shareOrDownload(blob, name, title) {
+  const file = new File([blob], name, {type:blob.type});
+  if (navigator.canShare && navigator.share) {
+    try { if (navigator.canShare({files:[file]})) { await navigator.share({files:[file], title, text:title}); return 'shared'; } }
+    catch (e) { if (e && e.name === 'AbortError') return 'cancel'; }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  return 'downloaded';
+}
+function buildReport() {
+  const payload = Object.assign(store.getAll(), {exportedAt:new Date().toISOString(), rid:S.rid, app:'najem', v:1});
+  const json = JSON.stringify(payload).replace(/</g, '\\u003c');
+  if (PRISTINE.indexOf(REPORT_TAG) < 0) throw new Error('template');
+  return PRISTINE.replace(REPORT_TAG, '<script id="report-data" type="application/json">' + json + '</' + 'script>');
+}
+async function sendReport() {
+  let html; try { html = buildReport(); } catch (e) { toast('Nie udało się przygotować raportu'); return; }
+  const r = await shareOrDownload(new Blob([html], {type:'text/html'}), 'najem-raport-' + todayStr() + '.html', 'Najem – raport ' + todayStr());
+  if (r === 'cancel') return;
+  lsSet(K.exp, String(Date.now()));
+  toast(r === 'shared' ? 'Raport gotowy do wysłania' : 'Raport zapisany w Pobranych');
+  render(); if (S.tab === 'ustawienia') renderMain(true);
+}
+let xlsxP = null;
+function loadXlsx() {
+  if (window.XLSX) return Promise.resolve();
+  if (!xlsxP) xlsxP = new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'xlsx.full.min.js'; s.onload = res; s.onerror = () => { xlsxP = null; rej(); }; document.head.appendChild(s); });
+  return xlsxP;
+}
+async function exportXlsx() {
+  try { await loadXlsx(); } catch (e) { toast('Nie udało się wczytać modułu Excel'); return; }
+  const X = window.XLSX, all = Object.values(D().charges), rn = id => D().rentals[id]?.name || '(usunięty najem)';
+  const byDate = (a, b) => a[0].localeCompare(b[0]);
+  const pays = all.filter(c => isIncome(c) && c.paidOn).map(c => [c.paidOn, rn(c.r), c.name, c.kind === 'charge' ? c.m : 'jednorazowo', paidAmt(c) / 100, c.taxable ? 'tak' : 'nie']).sort(byDate);
+  const open = all.filter(c => isIncome(c) && !c.paidOn).map(c => [dueOf(c), rn(c.r), c.name, c.kind === 'charge' ? c.m : 'jednorazowo', c.amount / 100]).sort(byDate);
+  const costs = all.filter(c => c.kind === 'cost').map(c => [c.d, rn(c.r), c.name, c.amount / 100, c.note || '']).sort(byDate);
+  const taxes = allTaxes().sort((a, b) => a.m.localeCompare(b.m) || a.rname.localeCompare(b.rname)).map(x => [x.m, x.rname, x.base / 100, x.amount / 100, taxDeadline(x.m), x.paid ? x.rec.paidOn : '', x.paid ? 'zapłacony' : x.open ? 'naliczany' : 'do zapłaty']);
+  const money = (ws, cols) => { for (const k in ws) if (k[0] !== '!' && ws[k].t === 'n' && cols.includes(k.replace(/\d+/g, ''))) ws[k].z = '#,##0.00 "zł"'; return ws; };
+  const sheet = (rows, cols, widths) => { const ws = money(X.utils.aoa_to_sheet(rows), cols); ws['!cols'] = widths.map(w => ({wch:w})); return ws; };
+  const wb = X.utils.book_new();
+  X.utils.book_append_sheet(wb, sheet([['Data wpłaty', 'Najem', 'Pozycja', 'Za miesiąc', 'Kwota', 'Do podatku'], ...pays], ['E'], [12, 22, 20, 12, 13, 11]), 'Wpłaty');
+  X.utils.book_append_sheet(wb, sheet([['Miesiąc wpłat', 'Najem', 'Przychód', 'Podatek', 'Termin', 'Zapłacono', 'Status'], ...taxes], ['C', 'D'], [13, 22, 13, 12, 12, 12, 12]), 'Podatek');
+  X.utils.book_append_sheet(wb, sheet([['Data', 'Najem', 'Za co', 'Kwota', 'Notatka'], ...costs], ['D'], [12, 22, 24, 13, 30]), 'Koszty');
+  X.utils.book_append_sheet(wb, sheet([['Termin', 'Najem', 'Pozycja', 'Za miesiąc', 'Kwota'], ...open], ['E'], [12, 22, 20, 12, 13]), 'Nieopłacone');
+  const out = X.write(wb, {bookType:'xlsx', type:'array'});
+  const r = await shareOrDownload(new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), `najem-${todayStr()}.xlsx`, 'Najem – zestawienie');
+  if (r === 'downloaded') toast('Plik Excel zapisany w Pobranych');
+}
+async function importFile(file) {
+  let txt; try { txt = await file.text(); } catch (e) { toast('Nie udało się odczytać pliku'); return; }
+  let data = null;
+  try { data = JSON.parse(txt); } catch (e) {
+    try { const doc = new DOMParser().parseFromString(txt, 'text/html'); const el = doc.getElementById('report-data'); if (el && el.textContent.trim()) data = JSON.parse(el.textContent); } catch (e2) { data = null; }
+  }
+  if (!data || typeof data.rentals !== 'object' || typeof data.charges !== 'object') { toast(data && data.app === 'budzet-domowy' ? 'To raport z Budżetu domowego, nie z Najmu' : 'To nie jest plik raportu z tej aplikacji'); return; }
+  const nR = Object.keys(data.rentals).length;
+  if (store.hasData() && !(await ask(`Zastąpić obecne dane danymi z pliku (${nR} ${plural(nR, 'najem', 'najmy', 'najmów')}, z ${dateTimeLabel(data.exportedAt || Date.now())})?`, 'Zastąp'))) return;
+  if (!write(() => store.replaceAll(data), 'Dane wczytane')) return;
+  if (data.rid) setRid(data.rid);
+  ensureCharges(); S.tab = 'najem'; render();
+}
+
+/* ---------- PIN ---------- */
+const L = {mode:null, step:0, buf:'', first:'', fails:0, until:0, busy:false, onOk:null, info:''};
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const pinSupported = () => !!(window.crypto && crypto.subtle && window.isSecureContext !== false);
+function pinRec() { try { return JSON.parse(lsGet(K.pin) || 'null'); } catch (e) { return null; } }
+async function pinHash(pin, salt, iter) {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits']);
+  return b64(await crypto.subtle.deriveBits({name:'PBKDF2', salt:b64d(salt), iterations:iter, hash:'SHA-256'}, k, 256));
+}
+async function pinSave(pin) { const salt = b64(crypto.getRandomValues(new Uint8Array(16))), iter = 150000; localStorage.setItem(K.pin, JSON.stringify({salt, iter, hash:await pinHash(pin, salt, iter), len:pin.length})); }
+async function pinCheck(pin) { const r = pinRec(); return !!r && (await pinHash(pin, r.salt, r.iter)) === r.hash; }
+const lockVerifying = () => L.mode === 'unlock' || L.mode === 'confirm' || (L.mode === 'change' && L.step === 0);
+const lockNewStep = () => (L.mode === 'setup' && L.step === 0) || (L.mode === 'change' && L.step === 1);
+function lockOpen(mode, opts) {
+  L.mode = mode; L.step = 0; L.buf = ''; L.first = '';
+  L.onOk = (opts && opts.onOk) || null; L.info = (opts && opts.info) || ''; L.cancellable = !!(opts && opts.cancellable); L.firstRun = !!(opts && opts.firstRun);
+  closeSheet(); $('#dlg').classList.remove('open');
+  document.body.classList.add('locked'); $('#lock').classList.remove('hidden'); lockDraw();
+}
+function lockClose() { L.mode = null; document.body.classList.remove('locked'); $('#lock').classList.add('hidden'); render(); }
+function lockDraw(msg) {
+  const m = L.mode, s = L.step;
+  const [title, sub] = m === 'unlock' ? ['Wpisz PIN', ''] : m === 'confirm' ? ['Potwierdź PIN-em', L.info]
+    : m === 'setup' ? (s === 0 ? ['Ustaw PIN', '4–6 cyfr. Będzie potrzebny przy każdym otwarciu aplikacji.'] : ['Powtórz PIN', ''])
+    : (s === 0 ? ['Obecny PIN', ''] : s === 1 ? ['Nowy PIN', '4–6 cyfr'] : ['Powtórz nowy PIN', '']);
+  $('#lockTitle').textContent = title; $('#lockSub').textContent = sub;
+  const n = lockVerifying() ? (pinRec()?.len || 4) : (L.step === (m === 'setup' ? 1 : 2) ? L.first.length : Math.max(4, L.buf.length));
+  $('#dots').innerHTML = Array.from({length:n}, (_, i) => `<i class="${i < L.buf.length ? 'f' : ''}"></i>`).join('');
+  $('#lockMsg').textContent = msg || '';
+  $('#padOk').classList.toggle('inv', !lockNewStep());
+  $('#lockForgot').classList.toggle('hidden', m !== 'unlock');
+  $('#lockCancel').classList.toggle('hidden', m !== 'change' && m !== 'confirm' && !L.cancellable);
+  $('#lockCancel').textContent = (m === 'setup' && L.firstRun) ? 'Bez PIN-u' : 'Anuluj';
+}
+function lockShake() { const b = $('#lockbox'); b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); }
+async function lockKey(k) {
+  if (!L.mode || L.busy) return;
+  if (Date.now() < L.until) { lockDraw(`Za dużo prób. Spróbuj za ${Math.ceil((L.until - Date.now()) / 1000)} s`); return; }
+  if (k === 'del') { L.buf = L.buf.slice(0, -1); lockDraw(); return; }
+  if (k === 'ok') { if (lockNewStep()) await lockSubmit(); return; }
+  const target = lockVerifying() ? (pinRec()?.len || 4) : lockNewStep() ? 0 : L.first.length;
+  if (L.buf.length >= (target || 6)) return;
+  L.buf += k; lockDraw();
+  if (target && L.buf.length === target) { L.busy = true; setTimeout(() => { L.busy = false; lockSubmit(); }, 100); }
+}
+async function lockSubmit() {
+  const pin = L.buf;
+  if (lockVerifying()) {
+    L.busy = true; const m = $('#lockMsg'); m.textContent = 'Sprawdzam…'; m.classList.add('info');
+    const ok = await pinCheck(pin); L.busy = false; m.classList.remove('info');
+    if (!ok) { L.buf = ''; if (++L.fails >= 5) { L.until = Date.now() + 30000; L.fails = 0; } lockShake(); lockDraw('Błędny PIN'); return; }
+    L.fails = 0;
+    if (L.mode === 'unlock') { lockClose(); return; }
+    if (L.mode === 'confirm') { const cb = L.onOk; lockClose(); if (cb) cb(); return; }
+    L.step = 1; L.buf = ''; lockDraw(); return;
+  }
+  if (lockNewStep()) {
+    if (pin.length < 4) { lockShake(); lockDraw('PIN musi mieć 4–6 cyfr'); return; }
+    L.first = pin; L.step++; L.buf = ''; lockDraw(); return;
+  }
+  if (pin !== L.first) { L.step--; L.buf = ''; L.first = ''; lockShake(); lockDraw('PIN-y się różnią – spróbuj jeszcze raz'); return; }
+  L.busy = true;
+  try { await pinSave(pin); } catch (e) { L.busy = false; lockDraw('Nie udało się zapisać PIN-u'); return; }
+  L.busy = false;
+  const change = L.mode === 'change'; L.cancellable = false; lsDel(K.pinOff);
+  lockClose(); toast(change ? 'PIN zmieniony' : 'PIN ustawiony'); if (S.tab === 'ustawienia') renderMain(true);
+}
+$('#pad').addEventListener('pointerdown', e => {
+  const b = e.target.closest('[data-k]'); if (!b) return;
+  e.preventDefault(); b.classList.add('pr'); setTimeout(() => b.classList.remove('pr'), 110);
+  try { navigator.vibrate && navigator.vibrate(8); } catch (_) {}
+  lockKey(b.dataset.k);
+});
+$('#pad').addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => { if (!L.mode) return; if (/^[0-9]$/.test(e.key)) lockKey(e.key); else if (e.key === 'Backspace') lockKey('del'); else if (e.key === 'Enter') lockKey('ok'); });
+$('#lockCancel').addEventListener('click', () => {
+  if (L.mode === 'setup' && L.cancellable && !pinRec()) lsSet(K.pinOff, '1');
+  if (L.mode === 'change' || L.mode === 'confirm' || L.cancellable) { L.cancellable = false; lockClose(); }
+});
+$('#lockForgot').addEventListener('click', async () => {
+  if (!(await ask('Bez PIN-u nie da się odblokować aplikacji. Możesz usunąć wszystkie dane Najmu z tego telefonu, ustawić nowy PIN i wczytać ostatni raport. Usunąć dane?', 'Usuń dane'))) return;
+  if (!(await ask('Na pewno? Tego nie można cofnąć.', 'Tak, usuń wszystko'))) return;
+  Object.values(K).forEach(lsDel);
+  location.reload();
+});
+let hiddenAt = 0;
+document.addEventListener('visibilitychange', () => {
+  if (REPORT || !pinRec()) return;
+  if (document.hidden) hiddenAt = Date.now();
+  else if (!L.mode && hiddenAt && Date.now() - hiddenAt > 60000) lockOpen('unlock');
+});
+
+/* ---------- przełączanie najmów przeciągnięciem po karcie podsumowania ---------- */
+function stepRental(dir) {
+  const l = rentals(); if (l.length < 2) return;
+  const i = l.findIndex(r => r.id === curR().id);
+  setRid(l[(i + dir + l.length) % l.length].id); window.scrollTo(0, 0); render();
+  const m = $('#main'); m.classList.remove('mslide-l', 'mslide-r'); void m.offsetWidth; m.classList.add(dir > 0 ? 'mslide-l' : 'mslide-r');
+}
+let MS = null, MS_T = 0;
+document.addEventListener('touchstart', e => {
+  MS = null; if (S.sheet || e.touches.length !== 1 || S.tab !== 'najem') return;
+  if (!e.target.closest('.hero')) return;
+  const t = e.touches[0]; MS = {x:t.clientX, y:t.clientY};
+}, {passive:true});
+document.addEventListener('touchend', e => {
+  if (!MS) return; const t = e.changedTouches[0], dx = t.clientX - MS.x, dy = t.clientY - MS.y; MS = null;
+  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+  MS_T = Date.now(); stepRental(dx < 0 ? 1 : -1);
+}, {passive:true});
+
+/* ---------- akcje ---------- */
+const RO_OK = ['close', 'tab', 'rprev', 'rnext', 'rpick', 'rset', 'yprev', 'ynext', 'ynow', 'theme', 'redit', 'charge', 'cost', 'tax'];
+document.addEventListener('click', async e => {
+  if (Date.now() - MS_T < 400) return;
+  const el = e.target.closest('[data-act]'); if (!el || L.mode) return;
+  const a = el.dataset.act, ds = el.dataset;
+  if (S.readOnly && !RO_OK.includes(a)) return;
+  switch (a) {
+    case 'close': closeSheet(); break;
+    case 'tab': S.tab = ds.tab; window.scrollTo(0, 0); render(); if (ds.tab === 'pomoc') checkUpdate(); break;
+    case 'rprev': stepRental(-1); break;
+    case 'rnext': stepRental(1); break;
+    case 'rpick': openPick(); break;
+    case 'rset': setRid(ds.id); closeSheet(); S.tab = 'najem'; window.scrollTo(0, 0); render(); break;
+    case 'yprev': S.year--; render(); break;
+    case 'ynext': S.year++; render(); break;
+    case 'ynow': S.year = new Date().getFullYear(); render(); break;
+    case 'theme': lsSet(K.theme, isDarkNow() ? 'light' : 'dark'); applyTheme(); render(); if (S.tab === 'ustawienia') renderMain(true); break;
+    case 'settheme': lsSet(K.theme, ds.v); applyTheme(); render(); renderMain(true); break;
+    case 'updcheck': checkUpdate(); break;
+    case 'update': doUpdate(); break;
+    case 'report': sendReport(); break;
+    case 'xlsx': exportXlsx(); break;
+    case 'import': $('#importFile').value = ''; $('#importFile').click(); break;
+    case 'pinchange': lockOpen('change'); break;
+    case 'pinoff': lockOpen('confirm', {info:'Wyłączenie PIN-u', onOk:() => { lsDel(K.pin); lsSet(K.pinOff, '1'); toast('PIN wyłączony'); renderMain(true); }}); break;
+    case 'pinon': lockOpen('setup', {cancellable:true}); break;
+    case 'setsave': {
+      const rate = Number(String($('#set-rate').value).replace(',', '.')), day = Number($('#set-day').value);
+      if (!(rate > 0 && rate < 100)) { toast('Popraw stawkę podatku'); return; }
+      if (!(day >= 1 && day <= 20)) { toast('Dzień zapłaty: od 1 do 20'); return; }
+      write(() => store.saveSettings(Object.assign(clone(D().settings), {taxRate:rate, taxDay:Math.round(day)})), 'Zapisano'); renderMain(true); break;
+    }
+
+    case 'add': {
+      openSheet(head('Dodaj') + `<button class="btn" data-act="addcost">🔧 Koszt</button>
+        <button class="btn sec" data-act="addextra">💵 Jednorazowa należność</button><span class="hint">np. dopłata za media, kaucja, odsetki za zwłokę</span>
+        <button class="btn sec" data-act="addrental">🏠 Nowy najem</button>`);
+      break;
+    }
+    case 'addcost': openCost(null); break;
+    case 'addextra': openExtra(); break;
+    case 'addrental': openRental(null); break;
+    case 'pickr': S.sheet.r = ds.id; document.querySelectorAll('#rchips .chip').forEach(b => b.classList.toggle('on', b.dataset.id === ds.id)); break;
+
+    /* najem */
+    case 'redit': openRental(ds.id); break;
+    case 'itadd': syncRd(); S.rd.items.push({id:uid(), name:'', amount:0, taxable:true}); renderRentalSheet(); { const r = document.querySelectorAll('.itn'); r[r.length - 1]?.focus(); } break;
+    case 'itdel': syncRd(); S.rd.items.splice(+ds.i, 1); renderRentalSheet(); break;
+    case 'rsave': await saveRental(); break;
+    case 'rpayold': {
+      const rid = S.rd.id, list = chargesOf(rid).filter(c => c.kind === 'charge' && !c.paidOn && c.m < curMonth());
+      if (!(await ask(`Oznaczyć ${list.length} ${plural(list.length, 'należność', 'należności', 'należności')} z poprzednich miesięcy jako wpłacone w dniu terminu?`, 'Oznacz', false))) return;
+      const t = todayStr();
+      store.batch(() => { for (const c of list) { const d = dueOf(c); store.saveCharge(Object.assign(clone(c), {paidOn:d > t ? t : d})); } });
+      closeSheet(); toast('Oznaczono jako wpłacone', () => store.batch(() => list.forEach(c => store.saveCharge(c))));
+      break;
+    }
+    case 'rdel': {
+      const r = D().rentals[S.rd.id]; if (!r) return;
+      const n = chargesOf(r.id).length;
+      if (!(await ask(`Usunąć najem „${r.name}” razem ze wszystkimi wpisami (${n}) i podatkami? Tego nie da się cofnąć.`, 'Usuń najem'))) return;
+      const run = () => { store.deleteRental(r.id); closeSheet(); setRid(rentals()[0]?.id || ''); toast('Najem usunięty'); render(); };
+      if (pinSupported() && pinRec()) lockOpen('confirm', {info:'Usunięcie najmu: ' + r.name, onOk:run}); else run();
+      break;
+    }
+
+    /* należności */
+    case 'paid': {
+      const c = D().charges[ds.id]; if (!c) return;
+      const n = clone(c); n.paidOn = todayStr(); delete n.paid;
+      store.saveCharge(n); toast(`Wpłata zapisana: ${zl(c.amount)}, dziś`, () => store.saveCharge(c));
+      break;
+    }
+    case 'paidall': {
+      const r = curR(), list = chargesOf(r.id).filter(c => isIncome(c) && !c.paidOn && shownDate(c) === ds.d);
+      const t = todayStr();
+      store.batch(() => { for (const c of list) { const n = clone(c); n.paidOn = t; delete n.paid; store.saveCharge(n); } });
+      toast(`Wpłata zapisana: ${zl(sum(list, c => c.amount))}, dziś`, () => store.batch(() => list.forEach(c => store.saveCharge(c))));
+      break;
+    }
+    case 'charge': openCharge(ds.id); break;
+    case 'papay': case 'pasave': {
+      const c = D().charges[ds.id]; if (!c) return;
+      const n = readCharge(c, a === 'papay' || !!c.paidOn); if (!n) return;
+      if (write(() => store.saveCharge(n), a === 'papay' ? 'Wpłata zapisana' : 'Zapisano')) closeSheet();
+      break;
+    }
+    case 'paundo': {
+      const c = D().charges[ds.id]; if (!c) return;
+      const n = clone(c); delete n.paidOn; delete n.paid;
+      store.saveCharge(n); closeSheet(); toast('Wpłata cofnięta', () => store.saveCharge(c));
+      break;
+    }
+    case 'padel': { const c = D().charges[ds.id]; if (c && await ask(`Usunąć należność „${c.name}”${c.kind === 'charge' ? ` za ${monthYear(c.m)}` : ''}?`)) deleteCharge(c); break; }
+    case 'exsave': {
+      const amt = parseZl($('#ex-amt').value), name = $('#ex-name').value.trim(), d = $('#ex-date').value;
+      if (isNaN(amt) || amt <= 0) { toast('Wpisz kwotę'); return; }
+      if (!name) { toast('Wpisz, za co'); return; }
+      if (!isDate(d)) { toast('Wpisz termin'); return; }
+      const c = {id:uid(), kind:'extra', r:S.sheet.r, m:d.slice(0, 7), d, name, amount:amt, taxable:$('#ex-tax').checked, ts:Date.now()};
+      if (write(() => store.saveCharge(c), 'Dodano należność')) { setRid(c.r); closeSheet(); render(); }
+      break;
+    }
+
+    /* koszty */
+    case 'cost': openCost(ds.id); break;
+    case 'cosave': {
+      const amt = parseZl($('#co-amt').value), name = $('#co-name').value.trim(), d = $('#co-date').value;
+      if (isNaN(amt) || amt <= 0) { toast('Wpisz kwotę'); return; }
+      if (!name) { toast('Wpisz, za co'); return; }
+      if (!isDate(d)) { toast('Wpisz datę'); return; }
+      const old = S.sheet.id && D().charges[S.sheet.id];
+      const c = Object.assign(old ? clone(old) : {id:uid(), kind:'cost', ts:Date.now()}, {r:S.sheet.r, name, amount:amt, d, note:$('#co-note').value.trim()});
+      if (write(() => store.saveCharge(c), old ? 'Zapisano' : 'Dodano koszt')) { setRid(c.r); closeSheet(); render(); }
+      break;
+    }
+    case 'codel': { const c = D().charges[ds.id]; if (c && await ask(`Usunąć koszt „${c.name}”?`)) { store.deleteCharge(c.id); closeSheet(); toast('Usunięto', () => store.saveCharge(c)); } break; }
+
+    /* podatek */
+    case 'tax': openTax(ds.r, ds.m); break;
+    case 'taxpaid': { const x = taxEntries(ds.r).find(t => t.m === ds.m); if (x) markTaxPaid([x], todayStr()); break; }
+    case 'taxpaidm': { const list = allTaxes().filter(x => x.m === ds.m && !x.paid); if (list.length) markTaxPaid(list, todayStr()); break; }
+    case 'txplan': case 'txpay': {
+      const {rid, m} = S.sheet, k = taxKey(rid, m), rec = clone(D().taxes[k] || {});
+      const plan = $('#tx-plan').value; if (isDate(plan)) rec.payDate = plan; else delete rec.payDate;
+      if (a === 'txpay') {
+        const pd = $('#tx-paid').value, amt = parseZl($('#tx-amt').value);
+        if (!isDate(pd)) { toast('Wpisz datę zapłaty'); return; }
+        if (isNaN(amt) || amt < 0) { toast('Popraw kwotę'); return; }
+        rec.paidOn = pd; rec.paidAmount = amt;
+      }
+      if (write(() => store.saveTax(k, rec), a === 'txpay' ? 'Podatek zapisany jako zapłacony' : 'Zapisano datę')) closeSheet();
+      break;
+    }
+    case 'txundo': {
+      const {rid, m} = S.sheet, k = taxKey(rid, m), prev = D().taxes[k]; if (!prev) return;
+      const rec = clone(prev); delete rec.paidOn; delete rec.paidAmount;
+      store.saveTax(k, rec); closeSheet(); toast('Zapłata cofnięta', () => store.saveTax(k, prev));
+      break;
+    }
+  }
+});
+$('#importFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) importFile(f); });
+document.addEventListener('input', e => { if (e.target.id === 'tx-plan') txHint(); });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('.sheet input')) { e.preventDefault(); e.target.blur(); } });
+
+/* ---------- start ---------- */
+store = REPORT ? LocalStore(REPORT, false) : LocalStore(null, true);
+store.watch(render);
+ensureCharges(); render();
+// nowy miesiąc mógł się zacząć, gdy aplikacja była w tle
+document.addEventListener('visibilitychange', () => { if (!document.hidden && ensureCharges()) render(); });
+
+if (REPORT || !pinSupported()) { $('#lock').classList.add('hidden'); document.body.classList.remove('locked'); }
+else if (pinRec()) lockOpen('unlock');
+else if (lsGet(K.pinOff) === '1') { $('#lock').classList.add('hidden'); document.body.classList.remove('locked'); }
+else lockOpen('setup', {cancellable:true, firstRun:true});
+
+if (!REPORT && location.protocol.startsWith('http')) {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+  setTimeout(() => loadXlsx().catch(() => {}), 3000);
+  let lastUpdCheck = 0;
+  const autoCheck = () => { if (navigator.onLine !== false && Date.now() - lastUpdCheck > 30 * 60e3) { lastUpdCheck = Date.now(); checkUpdate(); } };
+  setTimeout(autoCheck, 5000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) autoCheck(); });
+}
+</script>
+</body>
+</html>

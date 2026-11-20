@@ -1,0 +1,15 @@
+{
+  "name": "Najem – rozliczenia",
+  "short_name": "Najem",
+  "lang": "pl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f3f4f1",
+  "theme_color": "#2f6f5e",
+  "icons": [
+    { "src": "house-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "house-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "house-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,29 +1,60 @@
-# najem
+# Najem – rozliczenia najmu na telefon
 
-Krótki opis projektu — czym jest i do czego służy.
+**Wersja 1.0** · prosta aplikacja do pilnowania najmów: comiesięczne należności od najemcy, wpłaty, podatek (ryczałt 8%) i koszty. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em. Siostrzana aplikacja do „Budżetu domowego”: ta sama technologia i ten sam wygląd.
 
-## Wymagania
+Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
-- ...
+## Pliki w repozytorium
 
-## Instalacja
+| Plik | Do czego |
+|---|---|
+| `index.html` | cała aplikacja |
+| `sw.js` | działanie bez internetu i aktualizacje |
+| `version.json` | numer najnowszej wersji i lista zmian (sprawdzany w Pomoc → Aktualizacja) |
+| `manifest.webmanifest` | nazwa, kolory i ikony aplikacji na telefonie |
+| `house-192.png`, `house-512.png`, `house-maskable.png` | ikona – biały domek na zielonym tle |
+| `xlsx.full.min.js` | eksport do Excela |
+| `README.md` | ten opis |
 
-```bash
-git clone <adres-repozytorium>
-cd najem
-```
+## Pierwsza instalacja
 
-## Użycie
+**Na komputerze (jednorazowo):**
+1. Repozytorium musi być **publiczne**: GitHub Pages na darmowym koncie nie działa z prywatnego repozytorium. Publiczny jest tylko kod, Twoje dane nigdy tam nie trafiają.
+2. Wgraj wszystkie pliki z tabeli powyżej (`git push` albo **Add file → Upload files**).
+3. **Settings → Pages** → Source: **Deploy from a branch**, Branch: **main**, folder **/ (root)** → **Save**.
+4. Po 1–2 minutach aplikacja działa pod adresem `https://TWOJ-LOGIN.github.io/najem/`.
 
-Opis, jak uruchomić i korzystać z projektu.
+**Na telefonie (Android):**
+1. Otwórz ten adres w **Chrome** → menu **⋮** → **Zainstaluj aplikację**.
+2. Przy pierwszym uruchomieniu ustaw **PIN** (osobny niż w Budżecie) albo wybierz „Bez PIN-u”, potem dodaj pierwszy najem.
 
-## Struktura projektu
+## Aktualizacja (dane zostają)
 
-```
-najem/
-└── README.md
-```
+1. Wgraj nowe pliki na GitHuba.
+2. Odczekaj 2–3 minuty.
+3. W aplikacji: **❓ Pomoc → Aktualizacja → Aktualizuj**. Gdy jest nowa wersja, na zakładce Pomoc widać czerwoną kropkę.
 
-## Licencja
+Numer wersji jest w trzech miejscach i musi być wszędzie taki sam: `APP_VERSION` w `index.html`, `version` w `version.json`, `CACHE` w `sw.js`.
 
-Do uzupełnienia.
+## Jak działa
+
+- **Najem** – nazwa, czego dotyczy, najemca, okres od–do (puste „do” = na czas nieokreślony), dzień płatności i pozycje płacone co miesiąc (np. Czynsz najmu, Opłaty). Przy każdej pozycji zaznaczasz, czy liczy się do podatku.
+- **Jeden najem = jedna strona** – przełączanie strzałkami ‹ ›, przeciągnięciem palca po karcie podsumowania albo z listy po stuknięciu w nazwę.
+- **Należności co miesiąc** – 1. dnia miesiąca pojawiają się same, z terminem płatności i oznaczeniem „po terminie”.
+- **💰 Wpłynęło** – jedno stuknięcie zapisuje wpłatę z dzisiejszą datą (z „Cofnij”); pozycja przeskakuje pod dzień wpłaty. Stuknięcie w pozycję pozwala zmienić datę, kwotę (wpłata częściowa) albo cofnąć wpłatę. „Wpłynęło wszystko” opłaca wszystkie pozycje z danego dnia naraz.
+- **Lista malejąco po datach** – najnowsze na górze: zaplanowane podatki, bieżące należności, wpłaty, koszty.
+- **Podatek** – ryczałt (domyślnie 8%) od wpłat, które wpłynęły w danym miesiącu, płatny w kolejnym miesiącu do 20. Kwota zaokrąglona do pełnych złotych. Datę zapłaty ustawiasz sam (domyślny dzień w Ustawieniach, osobno przy każdym podatku); po 20. aplikacja ostrzega. Zakładka **Podatek** pokazuje wszystkie najmy razem, miesiąc po miesiącu, z podsumowaniem roku i ostrzeżeniem powyżej 100 000 zł przychodu.
+- **Koszty i jednorazowe należności** – zielony przycisk **+** (naprawy, ubezpieczenie; dopłata za media, kaucja).
+- **Podsumowanie roku** – wpłynęło, podatek, koszty i ile zostaje.
+- **Raport** – jeden plik HTML: na komputerze podgląd, na telefonie kopia zapasowa (**Wczytaj z pliku**). Przypomnienie po 7 dniach.
+- **Excel** – arkusze: Wpłaty, Podatek, Koszty, Nieopłacone.
+- **Motyw** jasny / ciemny, **PIN** z blokadą po minucie w tle.
+
+## Ważne
+
+- Dane są tylko w telefonie. **Odinstalowanie aplikacji lub wyczyszczenie danych Chrome może je usunąć** – wysyłaj raport regularnie.
+- Najem i Budżet domowy działają pod tym samym adresem `github.io`, więc dzielą pamięć przeglądarki. Najem używa wyłącznie kluczy zaczynających się od `najem-`, więc dane obu aplikacji się nie mieszają.
+
+## Historia wersji
+
+- **1.0** – pierwsza wersja: najmy, comiesięczne należności, wpłaty, podatek 8%, koszty, raport, Excel, PIN, działanie offline.
