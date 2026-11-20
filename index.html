@@ -307,14 +307,15 @@ const rentalPeriod = r => `od ${longDay(r.from)}` + (r.to ? ` do ${longDay(r.to)
 const monthlyTotal = r => sum(r.items || [], it => it.amount || 0);
 
 /* ---------- comiesięczne należności: tworzą się same 1. dnia miesiąca ---------- */
+// pierwszy miesiąc, od którego powstają należności (początek najmu albo późniejszy, jeśli tak wybrano)
+const genStart = r => { const fm = r.from.slice(0, 7); return r.genFrom && r.genFrom > fm ? r.genFrom : fm; };
 function ensureCharges() {
   if (REPORT || !store) return 0;
   const d = D(), cm = curMonth(); let n = 0;
   const have = new Set(Object.values(d.charges).filter(c => c.kind === 'charge').map(c => c.r + '|' + c.m + '|' + c.item));
   store.batch(() => {
     for (const r of Object.values(d.rentals)) {
-      const fromM = r.from.slice(0, 7);
-      const start = r.genFrom && r.genFrom > fromM ? r.genFrom : fromM;
+      const start = genStart(r);
       const end = r.to && r.to.slice(0, 7) < cm ? r.to.slice(0, 7) : cm;
       const skip = new Set(r.skip || []);
       for (let m = start; m <= end; m = shiftMonth(m, 1)) for (const it of r.items || []) {
@@ -527,6 +528,7 @@ function helpHtml() {
     <li>Gdy pieniądze wpłyną, stuknij <b>💰 Wpłynęło</b>, wybierz datę wpływu (Dziś / Wczoraj / W terminie albo dowolną) i zapisz. Wpłata przeskoczy pod ten dzień. Dla należności z minionych miesięcy domyślną datą jest termin płatności.</li>
     <li>Datę wpływu zmienisz w każdej chwili przyciskiem <b>✓ 📅</b> przy opłaconej pozycji – tam też cofniesz wpłatę lub wpiszesz inną kwotę (wpłata częściowa).</li>
     <li>Gdy kilka pozycji z jednego dnia jest nieopłaconych, przy dacie jest przycisk <b>Wpłynęło wszystko</b> (jedna data dla wszystkich).</li>
+    <li><b>Wcześniejsze miesiące w istniejącym najmie:</b> otwórz najem (✏️ edytuj) i stuknij „➕ Dodaj wcześniejsze należności” albo przesuń datę „Od” wcześniej – aplikacja zapyta, czy dodać należności za te miesiące. Pojedynczą wcześniejszą wpłatę spoza najmu dodasz przyciskiem <b>+</b> → Jednorazowa należność.</li>
     <li><b>Starsza umowa:</b> dodaj najem z datą początku w przeszłości i wybierz „od początku najmu”. Pojawi się przycisk „Oznacz jako wpłacone w terminie” – wszystkie zaległe dostaną datę terminu, a pojedyncze daty poprawisz przyciskiem ✓ 📅.</li>
     <li>Stuknij pozycję, żeby zmienić kwotę należną, podatek albo usunąć należność.</li>
     <li>Jednorazową należność (np. dopłata za media, kaucja) dodasz zielonym przyciskiem <b>+</b>. Kaucji zwykle nie liczy się do podatku – odznacz to pole.</li>
@@ -636,6 +638,8 @@ function renderRentalSheet() {
     ${d.items.map((it, i) => `<div class="itrow" data-it="${i}"><input class="itn" value="${esc(it.name)}" placeholder="np. Czynsz najmu"><input class="ita" inputmode="decimal" value="${esc(am(it))}" placeholder="0,00 zł"><button class="ib del" data-act="itdel" data-i="${i}" aria-label="Usuń pozycję">✕</button><label class="chk"><input type="checkbox" class="itt" ${it.taxable ? 'checked' : ''}> liczyć do podatku (${rateLabel()})</label></div>`).join('')}
     <button class="btn sec" data-act="itadd">+ Dodaj pozycję</button>
     ${ro ? '' : `<button class="btn" data-act="rsave">${d.isNew ? 'Dodaj najem' : 'Zapisz'}</button>`}
+    ${(() => { const saved = !d.isNew && D().rentals[d.id]; if (ro || !saved) return ''; const fm = saved.from.slice(0, 7), gs = genStart(saved); if (gs <= fm) return '';
+      const n = monthDiff(fm, gs); return `<button class="btn sec" data-act="rbackfill">➕ Dodaj wcześniejsze należności: od ${esc(monthLabel(fm))} (${n} ${plural(n, 'miesiąc', 'miesiące', 'miesięcy')})</button>`; })()}
     ${!ro && unpaidOld.length ? `<button class="btn sec" data-act="rpayold">✓ Zaległe z poprzednich miesięcy (${unpaidOld.length}) – oznacz jako wpłacone w terminie</button>` : ''}
     ${!ro && !d.isNew ? '<button class="btn danger" data-act="rdel">🗑 Usuń najem</button>' : ''}`);
 }
@@ -667,6 +671,14 @@ async function saveRental() {
       d.genFrom = ch === 0 ? fm : cm;
     } else d.genFrom = fm;
   } else {
+    // data „Od” przesunięta wcześniej → zapytaj o należności za wcześniejsze miesiące
+    const fm = d.from.slice(0, 7), oldStart = genStart(old);
+    if (fm < oldStart && fm <= cm) {
+      const to = shiftMonth(oldStart, -1), n = monthDiff(fm, oldStart);
+      const ch = await choose(`Dodać należności za wcześniejsze miesiące: ${monthLabel(fm)}${n > 1 ? ' – ' + monthLabel(to) : ''} (${n} ${plural(n, 'miesiąc', 'miesiące', 'miesięcy')})?`, [{label:'Tak, dodaj'}, {label:'Nie, tylko zmień datę', cls:'sec'}]);
+      if (ch < 0) return;
+      if (ch === 0) { d.genFrom = fm; for (const it of d.items) if (it.from && it.from <= oldStart) delete it.from; }
+    }
     const startM = d.genFrom || d.from.slice(0, 7);
     for (const it of d.items) if (!old.items.some(o => o.id === it.id) && cm > startM) it.from = cm;
     // zmiany kwot / nazw w nieopłaconych należnościach
@@ -1030,6 +1042,14 @@ document.addEventListener('click', async e => {
     case 'itadd': syncRd(); S.rd.items.push({id:uid(), name:'', amount:0, taxable:true}); renderRentalSheet(); { const r = document.querySelectorAll('.itn'); r[r.length - 1]?.focus(); } break;
     case 'itdel': syncRd(); S.rd.items.splice(+ds.i, 1); renderRentalSheet(); break;
     case 'rsave': await saveRental(); break;
+    case 'rbackfill': {
+      const r = D().rentals[S.rd.id]; if (!r) return;
+      const gs = genStart(r), nr = clone(r); nr.genFrom = r.from.slice(0, 7);
+      for (const it of nr.items) if (it.from && it.from <= gs) delete it.from;
+      store.saveRental(nr); const n = ensureCharges(); closeSheet(); setRid(r.id); render();
+      toast(`Dodano ${n} ${plural(n, 'należność', 'należności', 'należności')} za wcześniejsze miesiące`);
+      break;
+    }
     case 'rpayold': case 'payold': {
       const rid = a === 'rpayold' ? S.rd.id : curR().id, n = chargesOf(rid).filter(c => c.kind === 'charge' && !c.paidOn && c.m < curMonth()).length;
       if (!(await ask(`Oznaczyć ${n} ${plural(n, 'należność', 'należności', 'należności')} z poprzednich miesięcy jako wpłacone w dniu terminu?`, 'Oznacz', false))) return;
