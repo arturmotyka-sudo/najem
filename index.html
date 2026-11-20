@@ -178,7 +178,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 const APP_DATE = '2026-11-20';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -459,21 +459,39 @@ function rentalHtml(r) {
     ${r.tenant ? `<span class="sub">👤 ${esc(r.tenant)}</span>` : ''}
     <span class="sub">📅 ${esc(rentalPeriod(r))} · płatne do ${r.dueDay || 10}. dnia</span>
     <span class="sub">💵 ${(r.items || []).filter(i => i.amount).map(i => `${esc(i.name)} ${zl(i.amount)}${i.taxable ? '' : ' (bez podatku)'}`).join(' · ') || 'brak kwot'}${(r.items || []).filter(i => i.amount).length > 1 ? ` · razem <b>${zl(monthlyTotal(r))}</b>` : ''}</span></button>`;
-  // lista: najnowsze na górze
-  const entries = [];
-  for (const c of ch) entries.push({t:c.kind === 'cost' ? 'cost' : 'charge', d:shownDate(c), c, ts:c.ts || 0});
-  for (const x of taxes) entries.push({t:'tax', d:x.date, x, ts:0});
-  const ord = e => e.t === 'tax' ? 0 : e.t === 'charge' ? (e.c.paidOn ? 2 : 1) : 3;
-  entries.sort((a, b) => b.d.localeCompare(a.d) || ord(a) - ord(b) || (a.c && b.c ? (a.c.name || '').localeCompare(b.c.name || '') : 0));
-  if (!entries.length) return h + `<div class="empty">Brak wpisów. ${r.from > today ? `Pierwsze należności pojawią się ${longDay(r.from.slice(0, 7) + '-01')}.` : 'Uzupełnij kwoty w najmie (✏️ edytuj).'}</div>`;
-  h += `<h3>Wpłaty, podatek i koszty</h3>`;
+  if (!ch.length && !taxes.length) return h + `<div class="empty">Brak wpisów. ${r.from > today ? `Pierwsze należności pojawią się ${longDay(r.from.slice(0, 7) + '-01')}.` : 'Uzupełnij kwoty w najmie (✏️ edytuj).'}</div>`;
+  const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'pl');
+  // 1. Najemca ma zapłacić – od najstarszego terminu
+  const todo = unpaid.slice().sort((a, b) => dueOf(a).localeCompare(dueOf(b)) || byName(a, b));
+  h += `<h3>💰 Najemca ma zapłacić<span class="${over.length ? 'neg' : ''}">${todo.length ? zl(due) : ''}</span></h3>`;
+  if (todo.length) {
+    // pogrupowane po miesiącu, za który jest należność (czynsz + opłaty zwykle jednym przelewem)
+    const months = [...new Set(todo.map(c => c.m))];
+    for (const m of months) {
+      const g = todo.filter(c => c.m === m);
+      h += `<div class="dhead"><span>Za ${esc(monthYear(m))}${g.length > 1 ? ' · ' + zl(sum(g, c => c.amount)) : ''}</span>${g.length > 1 && !S.readOnly ? `<button class="chip" data-act="paidall" data-m="${m}">💰 Wpłynęło wszystko</button>` : ''}</div>`;
+      h += `<div class="card list">${g.map(c => rowHtml({t:'charge', c, inTodo:true})).join('')}</div>`;
+    }
+  } else h += `<div class="card"><span class="pos">✓ Nic do zapłaty</span></div>`;
+  // 2. Podatek do zapłaty – zamknięte miesiące, potem naliczany za bieżący
+  const taxOpen = taxes.filter(t => !t.paid && t.open);
+  if (taxTodo.length || taxOpen.length) {
+    const tl = taxTodo.slice().sort((a, b) => a.m.localeCompare(b.m)).concat(taxOpen);
+    h += `<h3>🧾 Podatek do zapłaty<span class="${taxTodo.length ? 'neg' : ''}">${taxTodo.length ? zl(sum(taxTodo, t => t.amount)) : ''}</span></h3><div class="card list">${tl.map(x => rowHtml({t:'tax', x})).join('')}</div>`;
+  }
+  // 3. Historia – co zostało zapłacone, od najnowszego
+  const hist = [];
+  for (const c of ch) if (c.kind === 'cost' || c.paidOn) hist.push({t:c.kind === 'cost' ? 'cost' : 'charge', d:shownDate(c), c});
+  for (const x of taxes) if (x.paid) hist.push({t:'tax', d:x.rec.paidOn, x});
+  const ord = e => e.t === 'charge' ? 0 : e.t === 'tax' ? 1 : 2;
+  hist.sort((a, b) => b.d.localeCompare(a.d) || ord(a) - ord(b) || (a.c && b.c ? byName(a.c, b.c) : 0));
+  h += `<h3>📜 Historia<span>${hist.length ? 'od najnowszych' : ''}</span></h3>`;
+  if (!hist.length) return h + `<div class="card"><span class="sub">Tu pojawią się wpłaty, zapłacone podatki i koszty.</span></div>`;
   let i = 0;
-  while (i < entries.length) {
-    const d = entries[i].d, grp = [];
-    while (i < entries.length && entries[i].d === d) grp.push(entries[i++]);
-    const open = grp.filter(e => e.t === 'charge' && !e.c.paidOn);
-    h += `<div class="dhead"><span>${esc(dLabel(d))}${d === today ? ' · dziś' : ''}</span>${open.length > 1 && !S.readOnly ? `<button class="chip" data-act="paidall" data-d="${d}">💰 Wpłynęło wszystko</button>` : ''}</div>`;
-    h += `<div class="card list">${grp.map(rowHtml).join('')}</div>`;
+  while (i < hist.length) {
+    const d = hist[i].d, grp = [];
+    while (i < hist.length && hist[i].d === d) grp.push(hist[i++]);
+    h += `<div class="dhead"><span>${esc(dLabel(d))}${d === today ? ' · dziś' : ''}</span></div><div class="card list">${grp.map(rowHtml).join('')}</div>`;
   }
   return h;
 }
@@ -490,8 +508,8 @@ function rowHtml(e) {
   const c = e.c;
   if (e.t === 'cost') return `<div class="plrow"><button class="tx" data-act="cost" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'cost')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name || 'Koszt')}</span><span class="amtv neg">−${zl(c.amount)}</span></span><span class="sub">koszt${c.note ? ' · ' + esc(c.note) : ''}</span></span></button></div>`;
   const paid = !!c.paidOn, due = dueOf(c), late = !paid && today > due;
-  let sub = c.kind === 'charge' ? `za ${esc(monthYear(c.m))}` : 'jednorazowo';
-  if (!paid) sub += ` · termin ${shortDay(due)}` + (late ? '<span class="tag">po terminie</span>' : '');
+  let sub = c.kind === 'charge' ? (e.inTodo ? '' : `za ${esc(monthYear(c.m))}`) : 'jednorazowo';
+  if (!paid) sub += `${sub ? ' · ' : ''}termin ${shortDay(due)}` + (late ? '<span class="tag">po terminie</span>' : '');
   else if (c.paid !== undefined && c.paid !== c.amount) sub += `<span class="tag w">wpłacono ${zl(c.paid)} z ${zl(c.amount)}</span>`;
   if (!c.taxable) sub += '<span class="tag n">bez podatku</span>';
   const btn = S.readOnly ? '' : paid ? `<button class="paybtn" data-act="paid" data-id="${esc(c.id)}" aria-label="Zmień datę wpływu"><span class="pos">✓</span> 📅</button>` : `<button class="paybtn go" data-act="paid" data-id="${esc(c.id)}">💰 Wpłynęło</button>`;
@@ -550,15 +568,15 @@ function helpHtml() {
     <p>Zmiana kwoty działa od kolejnych należności; aplikacja zapyta, czy zmienić ją też w już utworzonych, jeszcze nieopłaconych.</p></details>
   <details class="help"><summary>💰 Należności i wpłaty</summary>
     <ul><li>1. dnia każdego miesiąca pojawiają się należności z najmu (przy dacie 1. dnia), z terminem płatności.</li>
-    <li>Gdy pieniądze wpłyną, stuknij <b>💰 Wpłynęło</b>, wybierz datę wpływu (Dziś / Wczoraj / W terminie albo dowolną) i zapisz. Wpłata przeskoczy pod ten dzień. Dla należności z minionych miesięcy domyślną datą jest termin płatności.</li>
+    <li>Gdy pieniądze wpłyną, stuknij <b>💰 Wpłynęło</b>, wybierz datę wpływu (Dziś / Wczoraj / W terminie albo dowolną) i zapisz. Wpłata przejdzie do Historii pod ten dzień. Dla należności z minionych miesięcy domyślną datą jest termin płatności.</li>
     <li>Datę wpływu zmienisz w każdej chwili przyciskiem <b>✓ 📅</b> przy opłaconej pozycji – tam też cofniesz wpłatę lub wpiszesz inną kwotę (wpłata częściowa).</li>
-    <li>Gdy kilka pozycji z jednego dnia jest nieopłaconych, przy dacie jest przycisk <b>Wpłynęło wszystko</b> (jedna data dla wszystkich).</li>
+    <li>Gdy za jeden miesiąc jest kilka nieopłaconych pozycji (np. czynsz i opłaty), przy miesiącu jest przycisk <b>Wpłynęło wszystko</b> (jedna data dla wszystkich).</li>
     <li><b>Kwoty czynszu:</b> zielony <b>+</b> → „Czynsz i opłaty – kwoty co miesiąc” (albo stuknij kartę najmu ✏️ edytuj) i wpisz kwoty w „Co miesiąc najemca płaci”.</li>
     <li><b>Wcześniejsze miesiące w istniejącym najmie:</b> zielony <b>+</b> → „Należności za wcześniejsze miesiące” (albo przycisk na stronie najmu) lub przesuń datę „Od” wcześniej – aplikacja zapyta, czy dodać należności za te miesiące. Pojedynczą wcześniejszą wpłatę spoza najmu dodasz przyciskiem <b>+</b> → Jednorazowa należność.</li>
     <li><b>Starsza umowa:</b> dodaj najem z datą początku w przeszłości i wybierz „od początku najmu”. Pojawi się przycisk „Oznacz jako wpłacone w terminie” – wszystkie zaległe dostaną datę terminu, a pojedyncze daty poprawisz przyciskiem ✓ 📅.</li>
     <li>Stuknij pozycję, żeby zmienić kwotę należną, podatek albo usunąć należność. Usunięta należność nie wraca sama – przywrócisz ją przyciskiem <b>+</b> → „Przywróć usunięte należności”.</li>
     <li>Jednorazową należność (np. dopłata za media, kaucja) dodasz zielonym przyciskiem <b>+</b>. Kaucji zwykle nie liczy się do podatku – odznacz to pole.</li>
-    <li>Lista jest posortowana od najnowszych dat. Na górze są zaplanowane podatki, potem bieżące należności.</li></ul></details>
+    <li><b>Układ strony:</b> na górze „Najemca ma zapłacić” (nieopłacone, po miesiącach, od najstarszego) i „Podatek do zapłaty”, niżej „Historia” – wpłaty, zapłacone podatki i koszty od najnowszych.</li></ul></details>
   <details class="help"><summary>🧾 Podatek</summary>
     <ul><li>Podatek to ${rateLabel()} (ryczałt) od wpłat, które wpłynęły w danym miesiącu. Liczy się po dacie wpłaty, nie po miesiącu, za który jest czynsz.</li>
     <li>Płacisz go w kolejnym miesiącu, najpóźniej do 20. (wpłata w lutym → podatek do 20 marca).</li>
@@ -1100,7 +1118,7 @@ document.addEventListener('click', async e => {
 
     /* należności */
     case 'paid': openPayQuick([ds.id]); break;
-    case 'paidall': openPayQuick(chargesOf(curR().id).filter(c => isIncome(c) && !c.paidOn && shownDate(c) === ds.d).map(c => c.id)); break;
+    case 'paidall': openPayQuick(chargesOf(curR().id).filter(c => isIncome(c) && !c.paidOn && c.m === ds.m).map(c => c.id)); break;
     case 'pqd': $('#pq-date').value = ds.d; break;
     case 'pqsave': {
       const d = $('#pq-date').value, list = S.sheet.ids.map(id => D().charges[id]).filter(Boolean);

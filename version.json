@@ -1,8 +1,10 @@
 {
-  "version": "1.4",
+  "version": "1.5",
   "date": "2026-11-20",
   "changes": [
-    "Stawka podatku 8,5% – zapisane wcześniej 8% zmieni się samo; podatki jeszcze nie zapłacone przeliczą się automatycznie",
-    "Przy podatkach już oznaczonych jako zapłacone pojawi się ostrzeżenie „wpłaty się zmieniły”, jeśli z nowej stawki wychodzi inna kwota"
+    "Nowy układ strony najmu: na górze „Najemca ma zapłacić” – nieopłacone czynsze i opłaty, pogrupowane po miesiącach, od najstarszego",
+    "Pod spodem „Podatek do zapłaty” (i naliczany za bieżący miesiąc)",
+    "Na dole „Historia”: wpłaty, zapłacone podatki i koszty od najnowszych, pogrupowane po dniach",
+    "„Wpłynęło wszystko” osobno dla każdego miesiąca"
   ]
 }

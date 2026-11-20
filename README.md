@@ -1,6 +1,6 @@
 # Najem – rozliczenia najmu na telefon
 
-**Wersja 1.4** · prosta aplikacja do pilnowania najmów: comiesięczne należności od najemcy, wpłaty, podatek (ryczałt 8,5%) i koszty. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em. Siostrzana aplikacja do „Budżetu domowego”: ta sama technologia i ten sam wygląd.
+**Wersja 1.5** · prosta aplikacja do pilnowania najmów: comiesięczne należności od najemcy, wpłaty, podatek (ryczałt 8,5%) i koszty. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em. Siostrzana aplikacja do „Budżetu domowego”: ta sama technologia i ten sam wygląd.
 
 Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
@@ -43,7 +43,7 @@ Numer wersji jest w trzech miejscach i musi być wszędzie taki sam: `APP_VERSIO
 - **Należności co miesiąc** – 1. dnia miesiąca pojawiają się same, z terminem płatności i oznaczeniem „po terminie”.
 - **💰 Wpłynęło** – okienko z datą wpływu (Dziś / Wczoraj / W terminie / dowolna) i kwotą; pozycja przeskakuje pod dzień wpłaty. Dla minionych miesięcy domyślną datą jest termin płatności. Przyciskiem **✓ 📅** przy opłaconej pozycji zmienisz datę, kwotę (wpłata częściowa) albo cofniesz wpłatę. „Wpłynęło wszystko” opłaca wszystkie pozycje z danego dnia naraz.
 - **Starsza umowa** – najem z datą początku w przeszłości („od początku najmu”) i jeden przycisk „Oznacz jako wpłacone w terminie” dla wszystkich zaległych; pojedyncze daty poprawiasz potem przyciskiem ✓ 📅.
-- **Lista malejąco po datach** – najnowsze na górze: zaplanowane podatki, bieżące należności, wpłaty, koszty.
+- **Układ strony najmu** – na górze „Najemca ma zapłacić” (nieopłacone, pogrupowane po miesiącach, od najstarszego) i „Podatek do zapłaty”, niżej „Historia”: wpłaty, zapłacone podatki i koszty od najnowszych, pogrupowane po dniach.
 - **Podatek** – ryczałt (domyślnie 8,5%) od wpłat, które wpłynęły w danym miesiącu, płatny w kolejnym miesiącu do 20. Kwota zaokrąglona do pełnych złotych. Datę zapłaty ustawiasz sam (domyślny dzień w Ustawieniach, osobno przy każdym podatku); po 20. aplikacja ostrzega. Zakładka **Podatek** pokazuje wszystkie najmy razem, miesiąc po miesiącu, z podsumowaniem roku i ostrzeżeniem powyżej 100 000 zł przychodu.
 - **Koszty i jednorazowe należności** – zielony przycisk **+** (naprawy, ubezpieczenie; dopłata za media, kaucja).
 - **Podsumowanie roku** – wpłynęło, podatek, koszty i ile zostaje.
@@ -58,6 +58,7 @@ Numer wersji jest w trzech miejscach i musi być wszędzie taki sam: `APP_VERSIO
 
 ## Historia wersji
 
+- **1.5** – nowy układ strony najmu: „Najemca ma zapłacić” (po miesiącach, od najstarszego) → „Podatek do zapłaty” → „Historia” (zapłacone, od najnowszych).
 - **1.4** – stawka podatku 8,5% (domyślnie; zapisane wcześniej 8% zmienia się samo na 8,5%).
 - **1.3** – przywracanie usuniętych należności (+ → „Przywróć usunięte należności” albo w edycji najmu).
 - **1.2** – w menu **+** „Czynsz i opłaty – kwoty co miesiąc” i „Należności za wcześniejsze miesiące”; podpowiedzi na stronie najmu, gdy brakuje kwot lub wcześniejszych miesięcy.
