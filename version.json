@@ -1,8 +1,8 @@
 {
-  "version": "1.3",
+  "version": "1.4",
   "date": "2026-11-20",
   "changes": [
-    "Przywracanie usuniętych należności: przycisk + → „Przywróć usunięte należności” (albo w edycji najmu); wracają z obecnymi kwotami z najmu",
-    "Przy usuwaniu należności informacja, gdzie ją przywrócić"
+    "Stawka podatku 8,5% – zapisane wcześniej 8% zmieni się samo; podatki jeszcze nie zapłacone przeliczą się automatycznie",
+    "Przy podatkach już oznaczonych jako zapłacone pojawi się ostrzeżenie „wpłaty się zmieniły”, jeśli z nowej stawki wychodzi inna kwota"
   ]
 }

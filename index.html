@@ -178,7 +178,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.3';
+const APP_VERSION = '1.4';
 const APP_DATE = '2026-11-20';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -259,7 +259,12 @@ let store = null;
             należność opłacona ma paidOn (data wpłaty) i opcjonalnie paid (wpłacona kwota, gdy inna niż należna)
    taxes:   'idNajmu|RRRR-MM' (miesiąc wpłat) → {payDate (kiedy chcę zapłacić), paidOn, paidAmount} */
 function LocalStore(initial, persist) {
-  const norm = d => ({settings:Object.assign({taxRate:8, taxDay:20}, d.settings || {}), rentals:d.rentals || {}, charges:d.charges || {}, taxes:d.taxes || {}});
+  const norm = d => {
+    const settings = Object.assign({taxRate:8.5, taxDay:20}, d.settings || {});
+    // do wersji 1.3 domyślna stawka była błędnie 8% – jednorazowo zamieniana na 8,5%
+    if (!settings.rateFix) { if (Number(settings.taxRate) === 8) settings.taxRate = 8.5; settings.rateFix = 1; }
+    return {settings, rentals:d.rentals || {}, charges:d.charges || {}, taxes:d.taxes || {}};
+  };
   let data;
   if (initial) data = norm(clone(initial));
   else { let raw = {}; try { const r = lsGet(K.data); if (r) raw = JSON.parse(r); } catch (e) {} data = norm(raw); }
@@ -344,7 +349,7 @@ function ensureCharges() {
 }
 
 /* ---------- podatek: ryczałt od wpłat z danego miesiąca, płatny w następnym (do 20.) ---------- */
-const taxRate = () => { const v = Number(D().settings.taxRate); return isFinite(v) && v > 0 ? v : 8; };
+const taxRate = () => { const v = Number(D().settings.taxRate); return isFinite(v) && v > 0 ? v : 8.5; };
 const taxDay = () => Math.min(20, Math.max(1, Number(D().settings.taxDay) || 20));
 const taxDeadline = m => clampDay(shiftMonth(m, 1), 20);
 const taxDefault = m => clampDay(shiftMonth(m, 1), taxDay());
