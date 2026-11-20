@@ -335,8 +335,10 @@ const taxRate = () => { const v = Number(D().settings.taxRate); return isFinite(
 const taxDay = () => Math.min(20, Math.max(1, Number(D().settings.taxDay) || 20));
 const taxDeadline = m => clampDay(shiftMonth(m, 1), 20);
 const taxDefault = m => clampDay(shiftMonth(m, 1), taxDay());
-// podstawa i podatek zaokrąglone do pełnych złotych
-const taxOf = base => Math.round(Math.round(base / 100) * taxRate() / 100) * 100;
+// Ordynacja podatkowa art. 63: podstawa i podatek zaokrąglane do pełnych złotych – końcówki poniżej 50 gr w dół, od 50 gr w górę.
+// Liczone w groszach: zł × stawka% = grosze (np. 319 zł × 8 = 2552 gr = 25,52 zł → 26 zł).
+const roundZl = gr => Math.floor((gr + 50) / 100 + 1e-9) * 100;
+const taxOf = base => roundZl(roundZl(base) / 100 * taxRate());
 const rateLabel = () => String(taxRate()).replace('.', ',') + '%';
 const taxKey = (rid, m) => rid + '|' + m;
 const taxPayments = (rid, m) => chargesOf(rid).filter(c => isIncome(c) && c.taxable && c.paidOn && c.paidOn.slice(0, 7) === m);
@@ -537,7 +539,7 @@ function helpHtml() {
     <ul><li>Podatek to ${rateLabel()} (ryczałt) od wpłat, które wpłynęły w danym miesiącu. Liczy się po dacie wpłaty, nie po miesiącu, za który jest czynsz.</li>
     <li>Płacisz go w kolejnym miesiącu, najpóźniej do 20. (wpłata w lutym → podatek do 20 marca).</li>
     <li>Domyślna data zapłaty jest w Ustawieniach. Stuknij podatek, żeby ustawić własną datę albo oznaczyć zapłatę z inną datą.</li>
-    <li>Kwota jest zaokrąglona do pełnych złotych. Podatek za bieżący miesiąc rośnie z każdą wpłatą („naliczany”).</li>
+    <li>Podstawa i podatek są zaokrąglane do pełnych złotych: poniżej 50 gr w dół, od 50 gr w górę (np. 25,49 zł → 25 zł, 25,50 zł → 26 zł). Podatek za bieżący miesiąc rośnie z każdą wpłatą („naliczany”).</li>
     <li>W zakładce <b>Podatek</b> widzisz wszystkie najmy razem, miesiąc po miesiącu, i możesz jednym przyciskiem oznaczyć cały miesiąc jako zapłacony.</li>
     <li>Powyżej 100 000 zł przychodu w roku stawka od nadwyżki to 12,5% – wtedy zmień stawkę w Ustawieniach.</li>
     <li>Czy opłaty (media) liczyć do podatku, zależy od umowy – w razie wątpliwości zapytaj księgową.</li></ul></details>
