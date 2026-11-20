@@ -178,7 +178,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.1';
+const APP_VERSION = '1.2';
 const APP_DATE = '2026-11-20';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -429,6 +429,11 @@ function rentalHtml(r) {
     ${taxTodo.length ? `<div class="sub neg" style="margin-top:8px">🧾 Podatek do zapłaty: <b>${zl(sum(taxTodo, t => t.amount))}</b> · ${taxTodo.some(t => t.late) ? 'po terminie!' : 'termin ' + shortDay(taxTodo.map(t => taxDeadline(t.m)).sort()[0])}</div>` : ''}</div>`;
   const oldUnpaid = unpaid.filter(c => c.kind === 'charge' && c.m < curMonth());
   if (oldUnpaid.length > 1 && !S.readOnly) h += `<div class="banner warn">Nieopłacone z poprzednich miesięcy: ${oldUnpaid.length}. Wprowadzasz starszą umowę i najemca to zapłacił?<button data-act="payold">Oznacz jako wpłacone w terminie</button><span class="hint" style="color:inherit">Potem każdą datę zmienisz przyciskiem ✓ 📅.</span></div>`;
+  if (!S.readOnly) {
+    const fm = r.from.slice(0, 7), gs = genStart(r);
+    if (!monthlyTotal(r)) h += `<div class="banner info">💵 Nie ma jeszcze kwot. Wpisz, ile najemca płaci co miesiąc (czynsz, opłaty) – należności pojawią się same.<button data-act="redit" data-id="${esc(r.id)}">Wpisz kwoty</button></div>`;
+    else if (gs > fm && fm <= curMonth()) { const n = monthDiff(fm, gs); h += `<div class="banner info">📅 Należności są od ${esc(monthYear(gs))}, a najem trwa od ${esc(monthYear(fm))}.<button data-act="rbackfill" data-id="${esc(r.id)}">Dodaj wcześniejsze (${n} ${plural(n, 'miesiąc', 'miesiące', 'miesięcy')})</button></div>`; }
+  }
   // karta najmu
   h += `<button class="card" style="display:block;width:100%;text-align:left" data-act="redit" data-id="${esc(r.id)}">
     <div class="crow"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">✏️ edytuj</span></div>
@@ -530,7 +535,8 @@ function helpHtml() {
     <li>Gdy pieniądze wpłyną, stuknij <b>💰 Wpłynęło</b>, wybierz datę wpływu (Dziś / Wczoraj / W terminie albo dowolną) i zapisz. Wpłata przeskoczy pod ten dzień. Dla należności z minionych miesięcy domyślną datą jest termin płatności.</li>
     <li>Datę wpływu zmienisz w każdej chwili przyciskiem <b>✓ 📅</b> przy opłaconej pozycji – tam też cofniesz wpłatę lub wpiszesz inną kwotę (wpłata częściowa).</li>
     <li>Gdy kilka pozycji z jednego dnia jest nieopłaconych, przy dacie jest przycisk <b>Wpłynęło wszystko</b> (jedna data dla wszystkich).</li>
-    <li><b>Wcześniejsze miesiące w istniejącym najmie:</b> otwórz najem (✏️ edytuj) i stuknij „➕ Dodaj wcześniejsze należności” albo przesuń datę „Od” wcześniej – aplikacja zapyta, czy dodać należności za te miesiące. Pojedynczą wcześniejszą wpłatę spoza najmu dodasz przyciskiem <b>+</b> → Jednorazowa należność.</li>
+    <li><b>Kwoty czynszu:</b> zielony <b>+</b> → „Czynsz i opłaty – kwoty co miesiąc” (albo stuknij kartę najmu ✏️ edytuj) i wpisz kwoty w „Co miesiąc najemca płaci”.</li>
+    <li><b>Wcześniejsze miesiące w istniejącym najmie:</b> zielony <b>+</b> → „Należności za wcześniejsze miesiące” (albo przycisk na stronie najmu) lub przesuń datę „Od” wcześniej – aplikacja zapyta, czy dodać należności za te miesiące. Pojedynczą wcześniejszą wpłatę spoza najmu dodasz przyciskiem <b>+</b> → Jednorazowa należność.</li>
     <li><b>Starsza umowa:</b> dodaj najem z datą początku w przeszłości i wybierz „od początku najmu”. Pojawi się przycisk „Oznacz jako wpłacone w terminie” – wszystkie zaległe dostaną datę terminu, a pojedyncze daty poprawisz przyciskiem ✓ 📅.</li>
     <li>Stuknij pozycję, żeby zmienić kwotę należną, podatek albo usunąć należność.</li>
     <li>Jednorazową należność (np. dopłata za media, kaucja) dodasz zielonym przyciskiem <b>+</b>. Kaucji zwykle nie liczy się do podatku – odznacz to pole.</li>
@@ -675,7 +681,7 @@ async function saveRental() {
   } else {
     // data „Od” przesunięta wcześniej → zapytaj o należności za wcześniejsze miesiące
     const fm = d.from.slice(0, 7), oldStart = genStart(old);
-    if (fm < oldStart && fm <= cm) {
+    if (fm < old.from.slice(0, 7) && fm < oldStart && fm <= cm) {
       const to = shiftMonth(oldStart, -1), n = monthDiff(fm, oldStart);
       const ch = await choose(`Dodać należności za wcześniejsze miesiące: ${monthLabel(fm)}${n > 1 ? ' – ' + monthLabel(to) : ''} (${n} ${plural(n, 'miesiąc', 'miesiące', 'miesięcy')})?`, [{label:'Tak, dodaj'}, {label:'Nie, tylko zmień datę', cls:'sec'}]);
       if (ch < 0) return;
@@ -698,7 +704,8 @@ async function saveRental() {
   if (!write(() => store.saveRental(d))) return;
   setRid(d.id); closeSheet(); const n = ensureCharges();
   if (isNew) S.tab = 'najem';
-  toast(isNew ? (n ? `Najem dodany · ${n} ${plural(n, 'należność', 'należności', 'należności')}` : 'Najem dodany') : 'Zapisano');
+  const nTxt = n ? ` · dodano ${n} ${plural(n, 'należność', 'należności', 'należności')}` : '';
+  toast((isNew ? 'Najem dodany' : 'Zapisano') + nTxt);
   render();
 }
 
@@ -1029,7 +1036,10 @@ document.addEventListener('click', async e => {
     }
 
     case 'add': {
-      openSheet(head('Dodaj') + `<button class="btn" data-act="addcost">🔧 Koszt</button>
+      const r = curR(), fm = r.from.slice(0, 7), gs = genStart(r), nb = gs > fm && fm <= curMonth() ? monthDiff(fm, gs) : 0;
+      openSheet(head('Dodaj') + `<button class="btn" data-act="redit" data-id="${esc(r.id)}">💵 Czynsz i opłaty – kwoty co miesiąc</button><span class="hint">ile najemca płaci co miesiąc; zmiana kwot i okresu najmu</span>
+        ${nb ? `<button class="btn" data-act="rbackfill" data-id="${esc(r.id)}">📅 Należności za wcześniejsze miesiące (od ${esc(monthYear(fm))})</button>` : ''}
+        <button class="btn sec" data-act="addcost">🔧 Koszt</button>
         <button class="btn sec" data-act="addextra">💵 Jednorazowa należność</button><span class="hint">np. dopłata za media, kaucja, odsetki za zwłokę</span>
         <button class="btn sec" data-act="addrental">🏠 Nowy najem</button>`);
       break;
@@ -1045,7 +1055,7 @@ document.addEventListener('click', async e => {
     case 'itdel': syncRd(); S.rd.items.splice(+ds.i, 1); renderRentalSheet(); break;
     case 'rsave': await saveRental(); break;
     case 'rbackfill': {
-      const r = D().rentals[S.rd.id]; if (!r) return;
+      const r = D().rentals[ds.id || (S.rd && S.rd.id)]; if (!r) return;
       const gs = genStart(r), nr = clone(r); nr.genFrom = r.from.slice(0, 7);
       for (const it of nr.items) if (it.from && it.from <= gs) delete it.from;
       store.saveRental(nr); const n = ensureCharges(); closeSheet(); setRid(r.id); render();

@@ -1,11 +1,10 @@
 {
-  "version": "1.1",
+  "version": "1.2",
   "date": "2026-11-20",
   "changes": [
-    "Data wpływu: przy „Wpłynęło” wybierasz datę (Dziś / Wczoraj / W terminie / dowolna), a przyciskiem ✓ 📅 zmienisz ją później",
-    "Wcześniejsze należności: przycisk „Dodaj wcześniejsze należności” w najmie albo przesunięcie daty „Od”",
-    "„Oznacz jako wpłacone w terminie” dla zaległych z poprzednich miesięcy (starsza umowa)",
-    "Podatek zaokrąglany do pełnych złotych: poniżej 50 gr w dół, od 50 gr w górę",
-    "Motyw tylko przyciskiem na górze ekranu (usunięty z Ustawień)"
+    "Przycisk + ma teraz „Czynsz i opłaty – kwoty co miesiąc” (zmiana kwot najmu) oraz „Należności za wcześniejsze miesiące”",
+    "Podpowiedź na stronie najmu, gdy nie ma jeszcze kwot albo brakuje wcześniejszych miesięcy – z przyciskiem, który to uzupełnia",
+    "Po zapisaniu najmu widać, ile należności zostało dodanych",
+    "Poprawka: zapis najmu nie pyta już niepotrzebnie o wcześniejsze miesiące, gdy data „Od” się nie zmieniła"
   ]
 }
