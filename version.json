@@ -1,7 +1,11 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "date": "2026-11-20",
   "changes": [
-    "Pierwsza wersja: najmy, comiesięczne należności, wpłaty, podatek 8% i koszty"
+    "Data wpływu: przy „Wpłynęło” wybierasz datę (Dziś / Wczoraj / W terminie / dowolna), a przyciskiem ✓ 📅 zmienisz ją później",
+    "Wcześniejsze należności: przycisk „Dodaj wcześniejsze należności” w najmie albo przesunięcie daty „Od”",
+    "„Oznacz jako wpłacone w terminie” dla zaległych z poprzednich miesięcy (starsza umowa)",
+    "Podatek zaokrąglany do pełnych złotych: poniżej 50 gr w dół, od 50 gr w górę",
+    "Motyw tylko przyciskiem na górze ekranu (usunięty z Ustawień)"
   ]
 }
