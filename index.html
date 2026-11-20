@@ -424,6 +424,8 @@ function rentalHtml(r) {
     ${over.length ? `<span class="status">⚠️ po terminie: ${zl(overSum)}</span>` : due ? `<span class="sub">w terminie – najbliższy ${shortDay(unpaid.map(dueOf).sort()[0])}</span>` : `<span class="status">✓ Wszystko opłacone</span>`}
     <div class="stats"><div>Wpłynęło ${y}<b class="pos">${zl(incY)}</b></div><div>Podatek<b>${zl(taxY)}</b></div><div>Koszty<b>${zl(costY)}</b></div><div>Zostaje<b>${zl(incY - taxY - costY)}</b></div></div>
     ${taxTodo.length ? `<div class="sub neg" style="margin-top:8px">🧾 Podatek do zapłaty: <b>${zl(sum(taxTodo, t => t.amount))}</b> · ${taxTodo.some(t => t.late) ? 'po terminie!' : 'termin ' + shortDay(taxTodo.map(t => taxDeadline(t.m)).sort()[0])}</div>` : ''}</div>`;
+  const oldUnpaid = unpaid.filter(c => c.kind === 'charge' && c.m < curMonth());
+  if (oldUnpaid.length > 1 && !S.readOnly) h += `<div class="banner warn">Nieopłacone z poprzednich miesięcy: ${oldUnpaid.length}. Wprowadzasz starszą umowę i najemca to zapłacił?<button data-act="payold">Oznacz jako wpłacone w terminie</button><span class="hint" style="color:inherit">Potem każdą datę zmienisz przyciskiem ✓ 📅.</span></div>`;
   // karta najmu
   h += `<button class="card" style="display:block;width:100%;text-align:left" data-act="redit" data-id="${esc(r.id)}">
     <div class="crow"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">✏️ edytuj</span></div>
@@ -466,7 +468,7 @@ function rowHtml(e) {
   if (!paid) sub += ` · termin ${shortDay(due)}` + (late ? '<span class="tag">po terminie</span>' : '');
   else if (c.paid !== undefined && c.paid !== c.amount) sub += `<span class="tag w">wpłacono ${zl(c.paid)} z ${zl(c.amount)}</span>`;
   if (!c.taxable) sub += '<span class="tag n">bez podatku</span>';
-  const btn = S.readOnly ? '' : paid ? `<span class="paybtn done">✓</span>` : `<button class="paybtn go" data-act="paid" data-id="${esc(c.id)}">💰 Wpłynęło</button>`;
+  const btn = S.readOnly ? '' : paid ? `<button class="paybtn" data-act="paid" data-id="${esc(c.id)}" aria-label="Zmień datę wpływu"><span class="pos">✓</span> 📅</button>` : `<button class="paybtn go" data-act="paid" data-id="${esc(c.id)}">💰 Wpłynęło</button>`;
   return `<div class="plrow ${paid ? '' : 'todo'}"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'charge')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv ${paid ? 'pos' : ''}">+${zl(paid ? paidAmt(c) : c.amount)}</span></span><span class="sub">${sub}</span></span></button>${btn}</div>`;
 }
 
@@ -501,7 +503,6 @@ function settingsHtml() {
     <div><label class="f" style="margin-top:0">Domyślny dzień zapłaty</label><input id="set-day" type="number" min="1" max="20" value="${esc(st.taxDay)}"></div></div>
     <span class="hint">Podatek za dany miesiąc płacisz w kolejnym, najpóźniej do 20. Datę możesz też zmienić przy każdym podatku osobno.</span>
     <button class="btn" data-act="setsave">Zapisz</button></div>
-  <h3>Wygląd</h3><div class="card"><div class="seg">${[['auto', '🌓 Auto'], ['light', '☀️ Jasny'], ['dark', '🌙 Ciemny']].map(([v, l]) => `<button class="${themePref() === v ? 'on' : ''}" data-act="settheme" data-v="${v}">${l}</button>`).join('')}</div></div>
   <h3>PIN</h3><div class="card">`;
   if (!pinSupported()) h += `<p class="sub">PIN działa tylko po otwarciu aplikacji z adresu https.</p>`;
   else if (pinRec()) h += `<p class="sub">PIN jest włączony.</p><div class="row2"><button class="btn sec" data-act="pinchange">Zmień PIN</button><button class="btn danger" data-act="pinoff">Wyłącz PIN</button></div>`;
@@ -523,9 +524,11 @@ function helpHtml() {
     <p>Zmiana kwoty działa od kolejnych należności; aplikacja zapyta, czy zmienić ją też w już utworzonych, jeszcze nieopłaconych.</p></details>
   <details class="help"><summary>💰 Należności i wpłaty</summary>
     <ul><li>1. dnia każdego miesiąca pojawiają się należności z najmu (przy dacie 1. dnia), z terminem płatności.</li>
-    <li>Gdy pieniądze wpłyną, stuknij <b>💰 Wpłynęło</b> – wpłata zapisze się z dzisiejszą datą i przeskoczy pod ten dzień.</li>
-    <li>Gdy kilka pozycji z jednego miesiąca jest nieopłaconych, przy dacie jest przycisk <b>Wpłynęło wszystko</b>.</li>
-    <li>Stuknij pozycję, żeby zmienić datę lub kwotę wpłaty (np. wpłata częściowa), cofnąć wpłatę albo usunąć należność.</li>
+    <li>Gdy pieniądze wpłyną, stuknij <b>💰 Wpłynęło</b>, wybierz datę wpływu (Dziś / Wczoraj / W terminie albo dowolną) i zapisz. Wpłata przeskoczy pod ten dzień. Dla należności z minionych miesięcy domyślną datą jest termin płatności.</li>
+    <li>Datę wpływu zmienisz w każdej chwili przyciskiem <b>✓ 📅</b> przy opłaconej pozycji – tam też cofniesz wpłatę lub wpiszesz inną kwotę (wpłata częściowa).</li>
+    <li>Gdy kilka pozycji z jednego dnia jest nieopłaconych, przy dacie jest przycisk <b>Wpłynęło wszystko</b> (jedna data dla wszystkich).</li>
+    <li><b>Starsza umowa:</b> dodaj najem z datą początku w przeszłości i wybierz „od początku najmu”. Pojawi się przycisk „Oznacz jako wpłacone w terminie” – wszystkie zaległe dostaną datę terminu, a pojedyncze daty poprawisz przyciskiem ✓ 📅.</li>
+    <li>Stuknij pozycję, żeby zmienić kwotę należną, podatek albo usunąć należność.</li>
     <li>Jednorazową należność (np. dopłata za media, kaucja) dodasz zielonym przyciskiem <b>+</b>. Kaucji zwykle nie liczy się do podatku – odznacz to pole.</li>
     <li>Lista jest posortowana od najnowszych dat. Na górze są zaplanowane podatki, potem bieżące należności.</li></ul></details>
   <details class="help"><summary>🧾 Podatek</summary>
@@ -701,6 +704,28 @@ function openCharge(id) {
       ? `<button class="btn" data-act="pasave" data-id="${esc(id)}">Zapisz</button><button class="btn sec" data-act="paundo" data-id="${esc(id)}">↩️ Cofnij wpłatę (nieopłacone)</button>`
       : `<button class="btn" data-act="papay" data-id="${esc(id)}">💰 Wpłynęło</button><button class="btn sec" data-act="pasave" data-id="${esc(id)}">Zapisz bez wpłaty</button>`}
     ${ro ? '' : `<button class="btn danger" data-act="padel" data-id="${esc(id)}">🗑 Usuń należność</button>`}`);
+}
+/* szybka wpłata: data wpływu (domyślnie dziś, a dla minionych miesięcy – termin płatności) */
+function openPayQuick(ids) {
+  const list = ids.map(id => D().charges[id]).filter(Boolean); if (!list.length) return;
+  const one = list.length === 1 ? list[0] : null, paid = !!(one && one.paidOn), t = todayStr();
+  const due = list.map(dueOf).sort().pop();
+  const yest = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); })();
+  const def = paid ? one.paidOn : list.every(c => c.m < curMonth()) ? (due > t ? t : due) : t;
+  const what = one ? `${one.kind === 'charge' ? 'za ' + monthYear(one.m) + ' · ' : ''}należne ${zl(one.amount)}` : `${list.length} ${plural(list.length, 'pozycja', 'pozycje', 'pozycji')} · razem ${zl(sum(list, c => c.amount))}`;
+  openSheet(head(one ? esc(one.name) : 'Wpłata') + `
+    <p class="sub">${esc(what)}</p>
+    <label class="f">Data wpływu</label><input type="date" id="pq-date" value="${esc(def)}" max="${t}">
+    <div class="chips" style="margin-top:8px"><button class="chip" data-act="pqd" data-d="${t}">Dziś</button><button class="chip" data-act="pqd" data-d="${yest}">Wczoraj</button>${due <= t ? `<button class="chip" data-act="pqd" data-d="${due}">W terminie (${esc(shortDay(due))})</button>` : ''}</div>
+    ${one ? `<label class="f">Kwota wpłacona</label><input id="pq-amt" inputmode="decimal" value="${esc(paid ? toInput(paidAmt(one)) : '')}" placeholder="${esc(toInput(one.amount))} (całość)">` : ''}
+    <button class="btn" data-act="pqsave">💰 Zapisz wpłatę</button>
+    ${paid ? `<button class="btn sec" data-act="paundo" data-id="${esc(one.id)}">↩️ Cofnij wpłatę (nieopłacone)</button>` : ''}
+    ${one ? `<button class="btn sec" data-act="charge" data-id="${esc(one.id)}">Więcej: kwota należna, podatek, usuń</button>` : ''}`, {ids});
+}
+function payOld(rid) {
+  const t = todayStr(), list = chargesOf(rid).filter(c => c.kind === 'charge' && !c.paidOn && c.m < curMonth());
+  store.batch(() => { for (const c of list) { const d = dueOf(c); store.saveCharge(Object.assign(clone(c), {paidOn:d > t ? t : d})); } });
+  toast(`Oznaczono jako wpłacone w terminie (${list.length})`, () => store.batch(() => list.forEach(c => store.saveCharge(c))));
 }
 function readCharge(c, withPay) {
   const name = $('#pa-name').value.trim(), amt = parseZl($('#pa-amt').value);
@@ -974,7 +999,6 @@ document.addEventListener('click', async e => {
     case 'ynext': S.year++; render(); break;
     case 'ynow': S.year = new Date().getFullYear(); render(); break;
     case 'theme': lsSet(K.theme, isDarkNow() ? 'light' : 'dark'); applyTheme(); render(); if (S.tab === 'ustawienia') renderMain(true); break;
-    case 'settheme': lsSet(K.theme, ds.v); applyTheme(); render(); renderMain(true); break;
     case 'updcheck': checkUpdate(); break;
     case 'update': doUpdate(); break;
     case 'report': sendReport(); break;
@@ -1006,12 +1030,10 @@ document.addEventListener('click', async e => {
     case 'itadd': syncRd(); S.rd.items.push({id:uid(), name:'', amount:0, taxable:true}); renderRentalSheet(); { const r = document.querySelectorAll('.itn'); r[r.length - 1]?.focus(); } break;
     case 'itdel': syncRd(); S.rd.items.splice(+ds.i, 1); renderRentalSheet(); break;
     case 'rsave': await saveRental(); break;
-    case 'rpayold': {
-      const rid = S.rd.id, list = chargesOf(rid).filter(c => c.kind === 'charge' && !c.paidOn && c.m < curMonth());
-      if (!(await ask(`Oznaczyć ${list.length} ${plural(list.length, 'należność', 'należności', 'należności')} z poprzednich miesięcy jako wpłacone w dniu terminu?`, 'Oznacz', false))) return;
-      const t = todayStr();
-      store.batch(() => { for (const c of list) { const d = dueOf(c); store.saveCharge(Object.assign(clone(c), {paidOn:d > t ? t : d})); } });
-      closeSheet(); toast('Oznaczono jako wpłacone', () => store.batch(() => list.forEach(c => store.saveCharge(c))));
+    case 'rpayold': case 'payold': {
+      const rid = a === 'rpayold' ? S.rd.id : curR().id, n = chargesOf(rid).filter(c => c.kind === 'charge' && !c.paidOn && c.m < curMonth()).length;
+      if (!(await ask(`Oznaczyć ${n} ${plural(n, 'należność', 'należności', 'należności')} z poprzednich miesięcy jako wpłacone w dniu terminu?`, 'Oznacz', false))) return;
+      closeSheet(); payOld(rid);
       break;
     }
     case 'rdel': {
@@ -1024,17 +1046,18 @@ document.addEventListener('click', async e => {
     }
 
     /* należności */
-    case 'paid': {
-      const c = D().charges[ds.id]; if (!c) return;
-      const n = clone(c); n.paidOn = todayStr(); delete n.paid;
-      store.saveCharge(n); toast(`Wpłata zapisana: ${zl(c.amount)}, dziś`, () => store.saveCharge(c));
-      break;
-    }
-    case 'paidall': {
-      const r = curR(), list = chargesOf(r.id).filter(c => isIncome(c) && !c.paidOn && shownDate(c) === ds.d);
-      const t = todayStr();
-      store.batch(() => { for (const c of list) { const n = clone(c); n.paidOn = t; delete n.paid; store.saveCharge(n); } });
-      toast(`Wpłata zapisana: ${zl(sum(list, c => c.amount))}, dziś`, () => store.batch(() => list.forEach(c => store.saveCharge(c))));
+    case 'paid': openPayQuick([ds.id]); break;
+    case 'paidall': openPayQuick(chargesOf(curR().id).filter(c => isIncome(c) && !c.paidOn && shownDate(c) === ds.d).map(c => c.id)); break;
+    case 'pqd': $('#pq-date').value = ds.d; break;
+    case 'pqsave': {
+      const d = $('#pq-date').value, list = S.sheet.ids.map(id => D().charges[id]).filter(Boolean);
+      if (!isDate(d)) { toast('Wpisz datę wpływu'); return; }
+      const at = $('#pq-amt') ? $('#pq-amt').value.trim() : '';
+      const p = at === '' ? null : parseZl(at);
+      if (p !== null && (isNaN(p) || p <= 0)) { toast('Popraw kwotę'); return; }
+      store.batch(() => { for (const c of list) { const n = clone(c); n.paidOn = d; if (p !== null && p !== c.amount) n.paid = p; else delete n.paid; store.saveCharge(n); } });
+      closeSheet();
+      toast(`Wpłata zapisana: ${zl(p ?? sum(list, c => c.amount))}, ${d === todayStr() ? 'dziś' : shortDay(d)}`, () => store.batch(() => list.forEach(c => store.saveCharge(c))));
       break;
     }
     case 'charge': openCharge(ds.id); break;

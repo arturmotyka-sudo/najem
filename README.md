@@ -41,14 +41,15 @@ Numer wersji jest w trzech miejscach i musi być wszędzie taki sam: `APP_VERSIO
 - **Najem** – nazwa, czego dotyczy, najemca, okres od–do (puste „do” = na czas nieokreślony), dzień płatności i pozycje płacone co miesiąc (np. Czynsz najmu, Opłaty). Przy każdej pozycji zaznaczasz, czy liczy się do podatku.
 - **Jeden najem = jedna strona** – przełączanie strzałkami ‹ ›, przeciągnięciem palca po karcie podsumowania albo z listy po stuknięciu w nazwę.
 - **Należności co miesiąc** – 1. dnia miesiąca pojawiają się same, z terminem płatności i oznaczeniem „po terminie”.
-- **💰 Wpłynęło** – jedno stuknięcie zapisuje wpłatę z dzisiejszą datą (z „Cofnij”); pozycja przeskakuje pod dzień wpłaty. Stuknięcie w pozycję pozwala zmienić datę, kwotę (wpłata częściowa) albo cofnąć wpłatę. „Wpłynęło wszystko” opłaca wszystkie pozycje z danego dnia naraz.
+- **💰 Wpłynęło** – okienko z datą wpływu (Dziś / Wczoraj / W terminie / dowolna) i kwotą; pozycja przeskakuje pod dzień wpłaty. Dla minionych miesięcy domyślną datą jest termin płatności. Przyciskiem **✓ 📅** przy opłaconej pozycji zmienisz datę, kwotę (wpłata częściowa) albo cofniesz wpłatę. „Wpłynęło wszystko” opłaca wszystkie pozycje z danego dnia naraz.
+- **Starsza umowa** – najem z datą początku w przeszłości („od początku najmu”) i jeden przycisk „Oznacz jako wpłacone w terminie” dla wszystkich zaległych; pojedyncze daty poprawiasz potem przyciskiem ✓ 📅.
 - **Lista malejąco po datach** – najnowsze na górze: zaplanowane podatki, bieżące należności, wpłaty, koszty.
 - **Podatek** – ryczałt (domyślnie 8%) od wpłat, które wpłynęły w danym miesiącu, płatny w kolejnym miesiącu do 20. Kwota zaokrąglona do pełnych złotych. Datę zapłaty ustawiasz sam (domyślny dzień w Ustawieniach, osobno przy każdym podatku); po 20. aplikacja ostrzega. Zakładka **Podatek** pokazuje wszystkie najmy razem, miesiąc po miesiącu, z podsumowaniem roku i ostrzeżeniem powyżej 100 000 zł przychodu.
 - **Koszty i jednorazowe należności** – zielony przycisk **+** (naprawy, ubezpieczenie; dopłata za media, kaucja).
 - **Podsumowanie roku** – wpłynęło, podatek, koszty i ile zostaje.
 - **Raport** – jeden plik HTML: na komputerze podgląd, na telefonie kopia zapasowa (**Wczytaj z pliku**). Przypomnienie po 7 dniach.
 - **Excel** – arkusze: Wpłaty, Podatek, Koszty, Nieopłacone.
-- **Motyw** jasny / ciemny, **PIN** z blokadą po minucie w tle.
+- **Motyw** jasny / ciemny (przycisk w prawym górnym rogu), **PIN** z blokadą po minucie w tle.
 
 ## Ważne
 
