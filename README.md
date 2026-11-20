@@ -1,6 +1,6 @@
 # Najem – rozliczenia najmu na telefon
 
-**Wersja 1.2** · prosta aplikacja do pilnowania najmów: comiesięczne należności od najemcy, wpłaty, podatek (ryczałt 8%) i koszty. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em. Siostrzana aplikacja do „Budżetu domowego”: ta sama technologia i ten sam wygląd.
+**Wersja 1.3** · prosta aplikacja do pilnowania najmów: comiesięczne należności od najemcy, wpłaty, podatek (ryczałt 8%) i koszty. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em. Siostrzana aplikacja do „Budżetu domowego”: ta sama technologia i ten sam wygląd.
 
 Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
@@ -58,6 +58,7 @@ Numer wersji jest w trzech miejscach i musi być wszędzie taki sam: `APP_VERSIO
 
 ## Historia wersji
 
+- **1.3** – przywracanie usuniętych należności (+ → „Przywróć usunięte należności” albo w edycji najmu).
 - **1.2** – w menu **+** „Czynsz i opłaty – kwoty co miesiąc” i „Należności za wcześniejsze miesiące”; podpowiedzi na stronie najmu, gdy brakuje kwot lub wcześniejszych miesięcy.
 - **1.1** – wybór i zmiana daty wpływu (✓ 📅), dodawanie wcześniejszych należności, „oznacz jako wpłacone w terminie”, zaokrąglanie podatku od 50 gr w górę, motyw tylko przyciskiem na górze.
 - **1.0** – pierwsza wersja: najmy, comiesięczne należności, wpłaty, podatek 8%, koszty, raport, Excel, PIN, działanie offline.

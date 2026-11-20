@@ -178,7 +178,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 const APP_DATE = '2026-11-20';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -309,6 +309,19 @@ const monthlyTotal = r => sum(r.items || [], it => it.amount || 0);
 /* ---------- comiesięczne należności: tworzą się same 1. dnia miesiąca ---------- */
 // pierwszy miesiąc, od którego powstają należności (początek najmu albo późniejszy, jeśli tak wybrano)
 const genStart = r => { const fm = r.from.slice(0, 7); return r.genFrom && r.genFrom > fm ? r.genFrom : fm; };
+// należności usunięte ręcznie (nie odtwarzają się same) – tylko te, które dałoby się przywrócić
+function skippedOf(r) {
+  const s = genStart(r), cm = curMonth(), e = r.to && r.to.slice(0, 7) < cm ? r.to.slice(0, 7) : cm;
+  const items = new Map((r.items || []).filter(i => i.amount).map(i => [i.id, i]));
+  return (r.skip || []).filter(k => { const [m, id] = k.split('|'); const it = items.get(id); return it && m >= s && m <= e && !(it.from && m < it.from); });
+}
+function restoreSkipped(rid) {
+  const r = D().rentals[rid]; if (!r) return;
+  const nr = clone(r), keep = new Set(skippedOf(r)); nr.skip = (r.skip || []).filter(k => !keep.has(k));
+  store.saveRental(nr); const n = ensureCharges(); setRid(rid); render();
+  toast(`Przywrócono ${n} ${plural(n, 'należność', 'należności', 'należności')}`);
+}
+const skippedLabel = r => { const ms = [...new Set(skippedOf(r).map(k => k.split('|')[0]))].sort(); return ms.length ? monthYear(ms[0]) + (ms.length > 1 ? ' – ' + monthYear(ms[ms.length - 1]) : '') : ''; };
 function ensureCharges() {
   if (REPORT || !store) return 0;
   const d = D(), cm = curMonth(); let n = 0;
@@ -538,7 +551,7 @@ function helpHtml() {
     <li><b>Kwoty czynszu:</b> zielony <b>+</b> → „Czynsz i opłaty – kwoty co miesiąc” (albo stuknij kartę najmu ✏️ edytuj) i wpisz kwoty w „Co miesiąc najemca płaci”.</li>
     <li><b>Wcześniejsze miesiące w istniejącym najmie:</b> zielony <b>+</b> → „Należności za wcześniejsze miesiące” (albo przycisk na stronie najmu) lub przesuń datę „Od” wcześniej – aplikacja zapyta, czy dodać należności za te miesiące. Pojedynczą wcześniejszą wpłatę spoza najmu dodasz przyciskiem <b>+</b> → Jednorazowa należność.</li>
     <li><b>Starsza umowa:</b> dodaj najem z datą początku w przeszłości i wybierz „od początku najmu”. Pojawi się przycisk „Oznacz jako wpłacone w terminie” – wszystkie zaległe dostaną datę terminu, a pojedyncze daty poprawisz przyciskiem ✓ 📅.</li>
-    <li>Stuknij pozycję, żeby zmienić kwotę należną, podatek albo usunąć należność.</li>
+    <li>Stuknij pozycję, żeby zmienić kwotę należną, podatek albo usunąć należność. Usunięta należność nie wraca sama – przywrócisz ją przyciskiem <b>+</b> → „Przywróć usunięte należności”.</li>
     <li>Jednorazową należność (np. dopłata za media, kaucja) dodasz zielonym przyciskiem <b>+</b>. Kaucji zwykle nie liczy się do podatku – odznacz to pole.</li>
     <li>Lista jest posortowana od najnowszych dat. Na górze są zaplanowane podatki, potem bieżące należności.</li></ul></details>
   <details class="help"><summary>🧾 Podatek</summary>
@@ -648,6 +661,7 @@ function renderRentalSheet() {
     ${ro ? '' : `<button class="btn" data-act="rsave">${d.isNew ? 'Dodaj najem' : 'Zapisz'}</button>`}
     ${(() => { const saved = !d.isNew && D().rentals[d.id]; if (ro || !saved) return ''; const fm = saved.from.slice(0, 7), gs = genStart(saved); if (gs <= fm) return '';
       const n = monthDiff(fm, gs); return `<button class="btn sec" data-act="rbackfill">➕ Dodaj wcześniejsze należności: od ${esc(monthLabel(fm))} (${n} ${plural(n, 'miesiąc', 'miesiące', 'miesięcy')})</button>`; })()}
+    ${(() => { const saved = !d.isNew && D().rentals[d.id]; const n = saved ? skippedOf(saved).length : 0; return ro || !n ? '' : `<button class="btn sec" data-act="rrestore" data-id="${esc(d.id)}">↩️ Przywróć usunięte należności (${n}): ${esc(skippedLabel(saved))}</button>`; })()}
     ${!ro && unpaidOld.length ? `<button class="btn sec" data-act="rpayold">✓ Zaległe z poprzednich miesięcy (${unpaidOld.length}) – oznacz jako wpłacone w terminie</button>` : ''}
     ${!ro && !d.isNew ? '<button class="btn danger" data-act="rdel">🗑 Usuń najem</button>' : ''}`);
 }
@@ -1039,6 +1053,7 @@ document.addEventListener('click', async e => {
       const r = curR(), fm = r.from.slice(0, 7), gs = genStart(r), nb = gs > fm && fm <= curMonth() ? monthDiff(fm, gs) : 0;
       openSheet(head('Dodaj') + `<button class="btn" data-act="redit" data-id="${esc(r.id)}">💵 Czynsz i opłaty – kwoty co miesiąc</button><span class="hint">ile najemca płaci co miesiąc; zmiana kwot i okresu najmu</span>
         ${nb ? `<button class="btn" data-act="rbackfill" data-id="${esc(r.id)}">📅 Należności za wcześniejsze miesiące (od ${esc(monthYear(fm))})</button>` : ''}
+        ${skippedOf(r).length ? `<button class="btn" data-act="rrestore" data-id="${esc(r.id)}">↩️ Przywróć usunięte należności (${skippedOf(r).length})</button><span class="hint">${esc(skippedLabel(r))} – z obecnymi kwotami z najmu</span>` : ''}
         <button class="btn sec" data-act="addcost">🔧 Koszt</button>
         <button class="btn sec" data-act="addextra">💵 Jednorazowa należność</button><span class="hint">np. dopłata za media, kaucja, odsetki za zwłokę</span>
         <button class="btn sec" data-act="addrental">🏠 Nowy najem</button>`);
@@ -1054,6 +1069,7 @@ document.addEventListener('click', async e => {
     case 'itadd': syncRd(); S.rd.items.push({id:uid(), name:'', amount:0, taxable:true}); renderRentalSheet(); { const r = document.querySelectorAll('.itn'); r[r.length - 1]?.focus(); } break;
     case 'itdel': syncRd(); S.rd.items.splice(+ds.i, 1); renderRentalSheet(); break;
     case 'rsave': await saveRental(); break;
+    case 'rrestore': closeSheet(); restoreSkipped(ds.id); break;
     case 'rbackfill': {
       const r = D().rentals[ds.id || (S.rd && S.rd.id)]; if (!r) return;
       const gs = genStart(r), nr = clone(r); nr.genFrom = r.from.slice(0, 7);
@@ -1105,7 +1121,7 @@ document.addEventListener('click', async e => {
       store.saveCharge(n); closeSheet(); toast('Wpłata cofnięta', () => store.saveCharge(c));
       break;
     }
-    case 'padel': { const c = D().charges[ds.id]; if (c && await ask(`Usunąć należność „${c.name}”${c.kind === 'charge' ? ` za ${monthYear(c.m)}` : ''}?`)) deleteCharge(c); break; }
+    case 'padel': { const c = D().charges[ds.id]; if (c && await ask(`Usunąć należność „${c.name}”${c.kind === 'charge' ? ` za ${monthYear(c.m)}? Nie pojawi się ponownie sama – przywrócisz ją przyciskiem + → „Przywróć usunięte należności”.` : '?'}`)) deleteCharge(c); break; }
     case 'exsave': {
       const amt = parseZl($('#ex-amt').value), name = $('#ex-name').value.trim(), d = $('#ex-date').value;
       if (isNaN(amt) || amt <= 0) { toast('Wpisz kwotę'); return; }

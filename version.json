@@ -1,10 +1,8 @@
 {
-  "version": "1.2",
+  "version": "1.3",
   "date": "2026-11-20",
   "changes": [
-    "Przycisk + ma teraz „Czynsz i opłaty – kwoty co miesiąc” (zmiana kwot najmu) oraz „Należności za wcześniejsze miesiące”",
-    "Podpowiedź na stronie najmu, gdy nie ma jeszcze kwot albo brakuje wcześniejszych miesięcy – z przyciskiem, który to uzupełnia",
-    "Po zapisaniu najmu widać, ile należności zostało dodanych",
-    "Poprawka: zapis najmu nie pyta już niepotrzebnie o wcześniejsze miesiące, gdy data „Od” się nie zmieniła"
+    "Przywracanie usuniętych należności: przycisk + → „Przywróć usunięte należności” (albo w edycji najmu); wracają z obecnymi kwotami z najmu",
+    "Przy usuwaniu należności informacja, gdzie ją przywrócić"
   ]
 }
