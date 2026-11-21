@@ -1,7 +1,8 @@
 {
-  "version": "1.17",
+  "version": "1.18",
   "date": "2026-11-21",
   "changes": [
-    "Najmy przełączysz przeciągnięciem palca w lewo / w prawo także po karcie z opisem najmu (nie tylko po „Najemca ma do zapłaty”)"
+    "Licznik pełnych miesięcy najmu na karcie podsumowania, np. 5/36 z paskiem. Przy umowie bezterminowej liczone do końca bieżącego roku – z nowym rokiem wydłuża się o kolejne 12 miesięcy",
+    "W okienku podatku nowa opcja „zapamiętaj ten dzień miesiąca na stałe dla najmu” – szybki sposób na własny dzień zapłaty podatku w każdym najmie (np. garaż 16., mieszkanie 17.)"
   ]
 }
