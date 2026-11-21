@@ -1,9 +1,7 @@
 {
-  "version": "1.14",
+  "version": "1.15",
   "date": "2026-11-21",
   "changes": [
-    "Zmiana ikon jak w Budżecie: ikona najmu i każdej pozycji (Czynsz, Opłaty, Prąd…) – w edycji najmu, przycisk z ikoną obok nazwy",
-    "Ikonę pojedynczego wpisu (np. kosztu) zmienisz w okienku po stuknięciu wpisu",
-    "„Automatycznie” przywraca ikonę dobraną według nazwy"
+    "„Kaucja u mnie” jest teraz pod wykresem zestawienia, nad historią, oddzielona niebieskimi kreskami"
   ]
 }

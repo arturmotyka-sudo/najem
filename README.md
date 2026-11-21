@@ -1,6 +1,6 @@
 # Najem – rozliczenia najmu na telefon
 
-**Wersja 1.14** · prosta aplikacja do pilnowania najmów: comiesięczne należności od najemcy, wpłaty, podatek (ryczałt 8,5%) i koszty. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em. Siostrzana aplikacja do „Budżetu domowego”: ta sama technologia i ten sam wygląd.
+**Wersja 1.15** · prosta aplikacja do pilnowania najmów: comiesięczne należności od najemcy, wpłaty, podatek (ryczałt 8,5%) i koszty. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em. Siostrzana aplikacja do „Budżetu domowego”: ta sama technologia i ten sam wygląd.
 
 Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
@@ -64,6 +64,7 @@ Numer wersji jest w trzech miejscach i musi być wszędzie taki sam: `APP_VERSIO
 
 ## Historia wersji
 
+- **1.15** – „Kaucja u mnie” przeniesiona pod wykres, nad historię, oddzielona niebieskimi kreskami.
 - **1.14** – zmiana ikon: najmu, pozycji (Czynsz, Opłaty…) i pojedynczych wpisów; „Automatycznie” przywraca ikonę według nazwy.
 - **1.13** – opłaty przekazywane dalej (np. do spółdzielni) nie liczą się do zysku; pole „przekazuję dalej” przy pozycji; istniejące opłaty i media bez podatku oznaczone automatycznie.
 - **1.12** – kreski z nazwą miesiąca w historii; kaucja jako osobna pozycja w zestawieniu („Zostaje u mnie” = zysk + kaucja do zwrotu); strona „Wszystkie najmy” (przeciągnij za ostatni najem).

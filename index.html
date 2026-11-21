@@ -153,6 +153,12 @@ details.help li{margin:4px 0}
 .msep{display:flex;align-items:center;gap:10px;margin:22px 2px 2px;color:var(--acc);font-size:13px;font-weight:700;letter-spacing:.02em}
 .msep::before,.msep::after{content:'';flex:1;height:2px;background:var(--acc);opacity:.35;border-radius:1px}
 .msep::before{flex:0 0 14px}
+.dsep{display:flex;align-items:center;gap:10px;margin:26px 2px 6px;color:var(--c-kos);font-size:13px;font-weight:700;letter-spacing:.02em}
+.dsep::before,.dsep::after{content:"";flex:1;height:2px;background:var(--c-kos);opacity:.55;border-radius:1px}
+.dsep::before{flex:0 0 14px}
+.dsep.end{margin:8px 2px 4px}
+.dsep.end::before{display:none}
+.card.dcard{border-color:color-mix(in srgb,var(--c-kos) 45%,var(--line))}
 /* PIN */
 .lock{position:fixed;inset:0;z-index:28;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
 .lockbox{width:100%;max-width:310px;text-align:center}
@@ -210,7 +216,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.14';
+const APP_VERSION = '1.15';
 const APP_DATE = '2026-11-21';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -545,11 +551,11 @@ function rentalHtml(r) {
     const tl = taxTodo.slice().sort((a, b) => a.m.localeCompare(b.m)).concat(taxOpen);
     h += `<h3>🧾 Podatek do zapłaty<span class="${taxTodo.length ? 'neg' : ''}">${taxTodo.length ? zl(sum(taxTodo, t => t.amount)) : ''}</span></h3><div class="card list">${tl.map(x => rowHtml({t:'tax', x})).join('')}</div>`;
   }
-  // kaucja trzymana – do rozliczenia i zwrotu
-  const held = ch.filter(c => isDeposit(c) && c.paidOn && !c.retOn);
-  if (held.length) h += `<h3>🔐 Kaucja u mnie<span>${zl(sum(held, paidAmt))}</span></h3><div class="card list">${held.map(c => `<div class="plrow"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">🔐</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv">${zl(paidAmt(c))}</span></span><span class="sub">otrzymana ${esc(shortDay(c.paidOn))} · do zwrotu po zakończeniu najmu, minus ewentualne szkody</span></span></button>${S.readOnly ? '' : `<button class="paybtn go" data-act="depset" data-id="${esc(c.id)}">Rozlicz i zwróć</button>`}</div>`).join('')}</div>`;
   // zestawienie roku – wykres
   h += yearChartHtml([r.id]);
+  // kaucja trzymana – do rozliczenia i zwrotu
+  const held = ch.filter(c => isDeposit(c) && c.paidOn && !c.retOn);
+  if (held.length) h += `<div class="dsep"><span>🔐 Kaucja u mnie · ${zl(sum(held, paidAmt))}</span></div><div class="card list dcard">${held.map(c => `<div class="plrow"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">🔐</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv">${zl(paidAmt(c))}</span></span><span class="sub">otrzymana ${esc(shortDay(c.paidOn))} · do zwrotu po zakończeniu najmu, minus ewentualne szkody</span></span></button>${S.readOnly ? '' : `<button class="paybtn go" data-act="depset" data-id="${esc(c.id)}">Rozlicz i zwróć</button>`}</div>`).join('')}</div><div class="dsep end"></div>`;
   // 3. Historia – co zostało zapłacone, od najnowszego
   const hist = [];
   for (const c of ch) if (c.kind === 'cost' || c.paidOn) hist.push({t:c.kind === 'cost' ? 'cost' : 'charge', d:shownDate(c), c});
