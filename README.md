@@ -1,6 +1,6 @@
 # Najem – rozliczenia najmu na telefon
 
-**Wersja 1.6** · prosta aplikacja do pilnowania najmów: comiesięczne należności od najemcy, wpłaty, podatek (ryczałt 8,5%) i koszty. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em. Siostrzana aplikacja do „Budżetu domowego”: ta sama technologia i ten sam wygląd.
+**Wersja 1.7** · prosta aplikacja do pilnowania najmów: comiesięczne należności od najemcy, wpłaty, podatek (ryczałt 8,5%) i koszty. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em. Siostrzana aplikacja do „Budżetu domowego”: ta sama technologia i ten sam wygląd.
 
 Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
@@ -45,7 +45,8 @@ Numer wersji jest w trzech miejscach i musi być wszędzie taki sam: `APP_VERSIO
 - **Starsza umowa** – najem z datą początku w przeszłości („od początku najmu”) i jeden przycisk „Oznacz jako wpłacone w terminie” dla wszystkich zaległych; pojedyncze daty poprawiasz potem przyciskiem ✓ 📅.
 - **Układ strony najmu** – na górze „Najemca ma zapłacić” (nieopłacone, pogrupowane po miesiącach, od najstarszego) i „Podatek do zapłaty”, niżej „Historia”: wpłaty, zapłacone podatki i koszty od najnowszych, pogrupowane po dniach.
 - **Podatek** – ryczałt (domyślnie 8,5%) od wpłat, które wpłynęły w danym miesiącu, płatny w kolejnym miesiącu do 20. Kwota zaokrąglona do pełnych złotych. Datę zapłaty ustawiasz sam (domyślny dzień w Ustawieniach, osobno przy każdym podatku); po 20. aplikacja ostrzega. Zakładka **Podatek** pokazuje wszystkie najmy razem, miesiąc po miesiącu, z podsumowaniem roku i ostrzeżeniem powyżej 100 000 zł przychodu.
-- **Koszty i jednorazowe należności** – zielony przycisk **+** (naprawy, ubezpieczenie; dopłata za media, kaucja).
+- **Koszty i jednorazowe należności** – zielony przycisk **+** (naprawy, ubezpieczenie; dopłata za media).
+- **Kaucja** – kwota w edycji najmu; pojawia się w „Najemca ma zapłacić”, ale nie jest przychodem ani podstawą podatku. Gdy wpłynie, jest w karcie „Kaucja u mnie” z przyciskiem „Rozlicz i zwróć”: potrącenia za szkody, data zwrotu, kwota do zwrotu liczona sama. Zatrzymana część staje się przychodem (domyślnie z podatkiem), szkody ponad kaucję – dopłatą najemcy.
 - **Zestawienie roku (wykres)** – zysk, pasek „wpłynęło = zysk + podatek + koszty” z kwotami i procentami oraz słupki miesięcy (stuknij miesiąc – szczegóły); przełączanie lat ‹ ›.
 - **Płatność z góry** – w najmie „Kiedy najemca płaci: z góry – w poprzednim miesiącu” i dzień (31 = do końca miesiąca); należność za kolejny miesiąc pojawia się wcześniej, a wpłata liczy się do podatku miesiąca, w którym wpłynęła.
 - **Raport** – jeden plik HTML: na komputerze podgląd, na telefonie kopia zapasowa (**Wczytaj z pliku**). Przypomnienie po 7 dniach.
@@ -59,6 +60,7 @@ Numer wersji jest w trzech miejscach i musi być wszędzie taki sam: `APP_VERSIO
 
 ## Historia wersji
 
+- **1.7** – kaucja zwrotna: wpłata bez podatku, karta „Kaucja u mnie”, rozliczenie z potrąceniami za szkody (zatrzymana część = przychód), zwrot w historii, arkusz „Kaucje” w Excelu.
 - **1.6** – płatność z góry (za kolejny miesiąc w poprzednim); podatek widoczny przy każdej wpłacie; zestawienie roku jako wykres (zysk, podatek, koszty, słupki miesięcy).
 - **1.5** – nowy układ strony najmu: „Najemca ma zapłacić” (po miesiącach, od najstarszego) → „Podatek do zapłaty” → „Historia” (zapłacone, od najnowszych).
 - **1.4** – stawka podatku 8,5% (domyślnie; zapisane wcześniej 8% zmienia się samo na 8,5%).

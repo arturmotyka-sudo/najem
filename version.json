@@ -1,9 +1,11 @@
 {
-  "version": "1.6",
+  "version": "1.7",
   "date": "2026-11-21",
   "changes": [
-    "Płatność z góry: w najmie wybierz „Kiedy najemca płaci: z góry – w poprzednim miesiącu” i dzień (31 = do końca miesiąca). Należność za kolejny miesiąc pojawia się wcześniej, z właściwym terminem",
-    "Podatek przy każdej wpłacie: w historii każda wpłata pokazuje swój podatek, a podatek za miesiąc pokazuje, z ilu wpłat się składa",
-    "Zestawienie roku jako wykres: zysk, pasek wpłynęło = zysk + podatek + koszty, słupki miesięcy (stuknij miesiąc, żeby zobaczyć szczegóły), przełączanie lat"
+    "Kaucja zwrotna: wpisz ją w edycji najmu – pojawi się w „Najemca ma zapłacić”, ale nie jest przychodem i nie liczy się do podatku ani zysku",
+    "Karta „Kaucja u mnie” z przyciskiem „Rozlicz i zwróć”: potrącenia za szkody, data zwrotu, kwota do zwrotu liczy się sama",
+    "Zatrzymana część kaucji staje się przychodem (domyślnie z podatkiem); szkody większe niż kaucja – dopłata najemcy do zapłaty",
+    "Zwrot kaucji widać w historii; w Excelu nowy arkusz „Kaucje”",
+    "Kaucję wpisaną wcześniej jako jednorazową należność zamienisz na kaucję zwrotną jednym przyciskiem (stuknij ją na liście)"
   ]
 }

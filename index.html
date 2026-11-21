@@ -202,7 +202,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.6';
+const APP_VERSION = '1.7';
 const APP_DATE = '2026-11-21';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -328,14 +328,18 @@ const curR = () => { const l = rentals(); return l.find(r => r.id === S.rid) || 
 const setRid = id => { S.rid = id; if (!REPORT) lsSet(K.rid, id); };
 const chargesOf = rid => Object.values(D().charges).filter(c => c.r === rid);
 const isIncome = c => c.kind === 'charge' || c.kind === 'extra';
+// kaucja: należna od najemcy, ale to nie przychód – trzymasz ją i oddajesz; przychodem jest tylko część zatrzymana przy rozliczeniu
+const isDeposit = c => c.kind === 'deposit';
+const isOwed = c => (isIncome(c) || isDeposit(c)) && !c.paidOn;
+const depositOf = rid => chargesOf(rid).find(isDeposit);
 const paidAmt = c => c.paid ?? c.amount;
-const dueOf = c => { if (c.kind === 'extra') return c.d; const r = D().rentals[c.r] || {}; return clampDay(r.advance ? shiftMonth(c.m, -1) : c.m, r.dueDay || 10); };
+const dueOf = c => { if (c.kind === 'extra' || c.kind === 'deposit') return c.d; const r = D().rentals[c.r] || {}; return clampDay(r.advance ? shiftMonth(c.m, -1) : c.m, r.dueDay || 10); };
 // zaległe = termin minął przed początkiem bieżącego miesiąca
 const isOldUnpaid = c => c.kind === 'charge' && !c.paidOn && dueOf(c) < curMonth() + '-01';
 // ostatni miesiąc, za który są już należności: bieżący, a przy płatności z góry – także następny
 const genEnd = r => { const cm = curMonth(), last = r.advance ? shiftMonth(cm, 1) : cm; return r.to && r.to.slice(0, 7) < last ? r.to.slice(0, 7) : last; };
 const dueText = r => (r.advance ? 'płatne z góry, ' : 'płatne ') + ((r.dueDay || 10) >= 31 ? 'do końca ' : `do ${r.dueDay || 10}. dnia `) + (r.advance ? 'poprzedniego miesiąca' : 'miesiąca');
-const shownDate = c => c.kind === 'cost' ? c.d : (c.paidOn || (c.kind === 'extra' ? c.d : c.m + '-01'));
+const shownDate = c => c.kind === 'cost' ? c.d : (c.paidOn || (c.kind === 'extra' || c.kind === 'deposit' ? c.d : c.m + '-01'));
 const rentalEnded = r => r.to && r.to < todayStr();
 const rentalPeriod = r => `od ${longDay(r.from)}` + (r.to ? ` do ${longDay(r.to)}` : ' · na czas nieokreślony');
 const monthlyTotal = r => sum(r.items || [], it => it.amount || 0);
@@ -463,7 +467,7 @@ function onboardHtml() {
 /* ekran najmu */
 function rentalHtml(r) {
   const today = todayStr(), y = today.slice(0, 4), ch = chargesOf(r.id);
-  const unpaid = ch.filter(c => isIncome(c) && !c.paidOn);
+  const unpaid = ch.filter(isOwed);
   const due = sum(unpaid, c => c.amount), over = unpaid.filter(c => today > dueOf(c)), overSum = sum(over, c => c.amount);
   const taxes = taxEntries(r.id), taxTodo = taxes.filter(t => !t.paid && !t.open);
   const cls = over.length ? 'bad' : due ? '' : 'ok';
@@ -483,7 +487,8 @@ function rentalHtml(r) {
     ${r.desc ? `<span class="sub" style="color:var(--ink);margin-top:2px">${esc(r.desc)}</span>` : ''}
     ${r.tenant ? `<span class="sub">👤 ${esc(r.tenant)}</span>` : ''}
     <span class="sub">📅 ${esc(rentalPeriod(r))} · ${esc(dueText(r))}</span>
-    <span class="sub">💵 ${(r.items || []).filter(i => i.amount).map(i => `${esc(i.name)} ${zl(i.amount)}${i.taxable ? '' : ' (bez podatku)'}`).join(' · ') || 'brak kwot'}${(r.items || []).filter(i => i.amount).length > 1 ? ` · razem <b>${zl(monthlyTotal(r))}</b>` : ''}</span></button>`;
+    <span class="sub">💵 ${(r.items || []).filter(i => i.amount).map(i => `${esc(i.name)} ${zl(i.amount)}${i.taxable ? '' : ' (bez podatku)'}`).join(' · ') || 'brak kwot'}${(r.items || []).filter(i => i.amount).length > 1 ? ` · razem <b>${zl(monthlyTotal(r))}</b>` : ''}</span>
+    ${(() => { const dp = depositOf(r.id); return dp ? `<span class="sub">🔐 Kaucja ${zl(dp.amount)} · ${dp.retOn ? `rozliczona ${shortDay(dp.retOn)}` : dp.paidOn ? 'u Ciebie, do zwrotu' : 'do wpłaty'}</span>` : ''; })()}</button>`;
   if (!ch.length && !taxes.length) return h + `<div class="empty">Brak wpisów. ${r.from > today ? `Pierwsze należności pojawią się ${longDay(r.from.slice(0, 7) + '-01')}.` : 'Uzupełnij kwoty w najmie (✏️ edytuj).'}</div>`;
   const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'pl');
   // 1. Najemca ma zapłacić – od najstarszego terminu
@@ -504,13 +509,17 @@ function rentalHtml(r) {
     const tl = taxTodo.slice().sort((a, b) => a.m.localeCompare(b.m)).concat(taxOpen);
     h += `<h3>🧾 Podatek do zapłaty<span class="${taxTodo.length ? 'neg' : ''}">${taxTodo.length ? zl(sum(taxTodo, t => t.amount)) : ''}</span></h3><div class="card list">${tl.map(x => rowHtml({t:'tax', x})).join('')}</div>`;
   }
+  // kaucja trzymana – do rozliczenia i zwrotu
+  const held = ch.filter(c => isDeposit(c) && c.paidOn && !c.retOn);
+  if (held.length) h += `<h3>🔐 Kaucja u mnie<span>${zl(sum(held, paidAmt))}</span></h3><div class="card list">${held.map(c => `<div class="plrow"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">🔐</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv">${zl(paidAmt(c))}</span></span><span class="sub">otrzymana ${esc(shortDay(c.paidOn))} · do zwrotu po zakończeniu najmu, minus ewentualne szkody</span></span></button>${S.readOnly ? '' : `<button class="paybtn go" data-act="depset" data-id="${esc(c.id)}">Rozlicz i zwróć</button>`}</div>`).join('')}</div>`;
   // zestawienie roku – wykres
   h += yearChartHtml(r.id);
   // 3. Historia – co zostało zapłacone, od najnowszego
   const hist = [];
   for (const c of ch) if (c.kind === 'cost' || c.paidOn) hist.push({t:c.kind === 'cost' ? 'cost' : 'charge', d:shownDate(c), c});
   for (const x of taxes) if (x.paid) hist.push({t:'tax', d:x.rec.paidOn, x});
-  const ord = e => e.t === 'charge' ? 0 : e.t === 'tax' ? 1 : 2;
+  for (const c of ch) if (isDeposit(c) && c.retOn) hist.push({t:'depret', d:c.retOn, c});
+  const ord = e => e.t === 'charge' ? 0 : e.t === 'depret' ? 1 : e.t === 'tax' ? 2 : 3;
   hist.sort((a, b) => b.d.localeCompare(a.d) || ord(a) - ord(b) || (a.c && b.c ? byName(a.c, b.c) : 0));
   h += `<h3>📜 Historia<span>${hist.length ? 'od najnowszych' : ''}</span></h3>`;
   if (!hist.length) return h + `<div class="card"><span class="sub">Tu pojawią się wpłaty, zapłacone podatki i koszty.</span></div>`;
@@ -576,14 +585,20 @@ function rowHtml(e) {
   }
   const c = e.c;
   if (e.t === 'cost') return `<div class="plrow"><button class="tx" data-act="cost" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'cost')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name || 'Koszt')}</span><span class="amtv neg">−${zl(c.amount)}</span></span><span class="sub">koszt${c.note ? ' · ' + esc(c.note) : ''}</span></span></button></div>`;
+  if (e.t === 'depret') {
+    const ded = c.ded || [];
+    return `<div class="plrow"><button class="tx" data-act="depset" data-id="${esc(c.id)}"><span class="emo">↩️</span><span class="cbody"><span class="crow"><span class="cname">Zwrot kaucji</span><span class="amtv">−${zl(c.ret || 0)}</span></span><span class="sub">z ${zl(paidAmt(c))}${ded.length ? ' · potrącono: ' + ded.map(x => `${esc(x.name)} ${zl(x.amount)}`).join(', ') : ' · bez potrąceń'}</span></span></button></div>`;
+  }
   const paid = !!c.paidOn, due = dueOf(c), late = !paid && today > due;
-  let sub = c.kind === 'charge' ? (e.inTodo ? '' : `za ${esc(monthYear(c.m))}`) : 'jednorazowo';
+  let sub = c.kind === 'charge' ? (e.inTodo ? '' : `za ${esc(monthYear(c.m))}`) : isDeposit(c) ? 'kaucja zwrotna · nie jest przychodem' : 'jednorazowo';
   if (!paid) sub += `${sub ? ' · ' : ''}termin ${shortDay(due)}` + (late ? '<span class="tag">po terminie</span>' : '');
   else if (c.paid !== undefined && c.paid !== c.amount) sub += `<span class="tag w">wpłacono ${zl(c.paid)} z ${zl(c.amount)}</span>`;
-  if (!c.taxable) sub += '<span class="tag n">bez podatku</span>';
+  if (isDeposit(c)) { if (c.retOn) sub += '<span class="tag g">rozliczona</span>'; }
+  else if (!c.taxable) sub += '<span class="tag n">bez podatku</span>';
   else if (paid) sub += ` · podatek ${rateLabel()}: ${zl(payTax(c))}`;
+  if (c.fromDep) sub += '<span class="tag n">z kaucji</span>';
   const btn = S.readOnly ? '' : paid ? `<button class="paybtn" data-act="paid" data-id="${esc(c.id)}" aria-label="Zmień datę wpływu"><span class="pos">✓</span> 📅</button>` : `<button class="paybtn go" data-act="paid" data-id="${esc(c.id)}">💰 Wpłynęło</button>`;
-  return `<div class="plrow ${paid ? '' : 'todo'}"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'charge')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv ${paid ? 'pos' : ''}">+${zl(paid ? paidAmt(c) : c.amount)}</span></span><span class="sub">${sub}</span></span></button>${btn}</div>`;
+  return `<div class="plrow ${paid ? '' : 'todo'}"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'charge')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv ${paid && !isDeposit(c) ? 'pos' : ''}">+${zl(paid ? paidAmt(c) : c.amount)}</span></span><span class="sub">${sub}</span></span></button>${btn}</div>`;
 }
 
 /* zakładka Podatek */
@@ -645,7 +660,7 @@ function helpHtml() {
     <li><b>Wcześniejsze miesiące w istniejącym najmie:</b> zielony <b>+</b> → „Należności za wcześniejsze miesiące” (albo przycisk na stronie najmu) lub przesuń datę „Od” wcześniej – aplikacja zapyta, czy dodać należności za te miesiące. Pojedynczą wcześniejszą wpłatę spoza najmu dodasz przyciskiem <b>+</b> → Jednorazowa należność.</li>
     <li><b>Starsza umowa:</b> dodaj najem z datą początku w przeszłości i wybierz „od początku najmu”. Pojawi się przycisk „Oznacz jako wpłacone w terminie” – wszystkie zaległe dostaną datę terminu, a pojedyncze daty poprawisz przyciskiem ✓ 📅.</li>
     <li>Stuknij pozycję, żeby zmienić kwotę należną, podatek albo usunąć należność. Usunięta należność nie wraca sama – przywrócisz ją przyciskiem <b>+</b> → „Przywróć usunięte należności”.</li>
-    <li>Jednorazową należność (np. dopłata za media, kaucja) dodasz zielonym przyciskiem <b>+</b>. Kaucji zwykle nie liczy się do podatku – odznacz to pole.</li>
+    <li>Jednorazową należność (np. dopłata za media, odsetki) dodasz zielonym przyciskiem <b>+</b>. Kaucję wpisuj w najmie – patrz „🔐 Kaucja”.</li>
     <li><b>Układ strony:</b> na górze „Najemca ma zapłacić” (nieopłacone, po miesiącach, od najstarszego) i „Podatek do zapłaty”, niżej „Historia” – wpłaty, zapłacone podatki i koszty od najnowszych.</li></ul></details>
   <details class="help"><summary>🧾 Podatek</summary>
     <ul><li>Podatek to ${rateLabel()} (ryczałt) od wpłat, które wpłynęły w danym miesiącu. Liczy się po dacie wpłaty, nie po miesiącu, za który jest czynsz. Dwie wpłaty w sierpniu (np. za sierpień i z góry za wrzesień) = jeden podatek za sierpień od ich sumy; przy każdej wpłacie widać jej część podatku.</li>
@@ -659,6 +674,12 @@ function helpHtml() {
     <p>Jeśli najemca płaci z góry (np. za wrzesień do końca sierpnia), w najmie (✏️ edytuj) wybierz „Kiedy najemca płaci: z góry – w poprzednim miesiącu” i dzień 31 (= do końca miesiąca). Należność za kolejny miesiąc pojawi się już na początku bieżącego, z terminem w bieżącym miesiącu, a wpłata trafi do podatku miesiąca, w którym wpłynęła.</p></details>
   <details class="help"><summary>📊 Zestawienie roku</summary>
     <p>Pod podatkami jest wykres roku: zysk (co zostaje), pasek pokazujący, jak wpłaty dzielą się na zysk, podatek i koszty, oraz słupki dla każdego miesiąca. Stuknij miesiąc, żeby zobaczyć jego kwoty; strzałkami ‹ › zmienisz rok.</p></details>
+  <details class="help"><summary>🔐 Kaucja</summary>
+    <ul><li>Kwotę kaucji wpisz w edycji najmu (✏️ edytuj → „Kaucja zwrotna”). Pojawi się w „Najemca ma zapłacić” z terminem w dniu początku najmu.</li>
+    <li>Kaucja nie jest przychodem: nie liczy się do podatku, „Wpłynęło” ani zysku. Gdy wpłynie, jest w karcie <b>Kaucja u mnie</b>.</li>
+    <li>Na koniec najmu stuknij <b>Rozlicz i zwróć</b>: dopisz potrącenia (np. uszkodzona podłoga 500 zł), datę zwrotu – aplikacja policzy, ile oddać. Zwrot pojawi się w Historii.</li>
+    <li>Zatrzymana część staje się przychodem z datą zwrotu (domyślnie z podatkiem – można odznaczyć). Jeśli szkody są większe niż kaucja, różnica pojawi się jako dopłata do zapłaty przez najemcę. Koszty naprawy dodaj osobno jako koszt.</li>
+    <li>Rozliczenie można poprawić albo cofnąć. Kaucję wpisaną wcześniej jako jednorazową należność zamienisz na kaucję zwrotną – stuknij ją na liście.</li></ul></details>
   <details class="help"><summary>🔧 Koszty</summary>
     <p>Koszty (naprawy, wyposażenie, ubezpieczenie, czynsz do wspólnoty) dodajesz przyciskiem <b>+</b>. Przy ryczałcie nie zmniejszają podatku – służą do policzenia, ile naprawdę zostaje z najmu („Zostaje” na górze).</p></details>
   <details class="help"><summary>💾 Kopia danych i Excel</summary>
@@ -695,7 +716,7 @@ async function doUpdate() {
 
 /* ---------- okienka ---------- */
 function openSheet(html, ctx) { S.sheet = ctx || {}; $('#sheet').innerHTML = `<div class="grab"></div>` + html; $('#ov').classList.add('open'); document.body.style.overflow = 'hidden'; }
-function closeSheet() { $('#ov').classList.remove('open'); $('#sheet').innerHTML = ''; S.sheet = null; S.rd = null; document.body.style.overflow = ''; if (pending) renderMain(); }
+function closeSheet() { $('#ov').classList.remove('open'); $('#sheet').innerHTML = ''; S.sheet = null; S.rd = null; S.dep = null; document.body.style.overflow = ''; if (pending) renderMain(); }
 $('#ov').addEventListener('click', e => { if (e.target.id === 'ov') closeSheet(); });
 const head = t => `<div class="shead"><h2>${t}</h2><button class="x" data-act="close" aria-label="Zamknij">✕</button></div>`;
 function choose(text, options) {
@@ -720,7 +741,7 @@ const rentalChips = sel => rentals().length > 1 ? `<label class="f">Najem</label
 function openPick() {
   const cur = curR();
   openSheet(head('Najmy') + `<div class="card list" style="margin-top:4px">${rentals().map(r => {
-    const due = sum(chargesOf(r.id).filter(c => isIncome(c) && !c.paidOn), c => c.amount);
+    const due = sum(chargesOf(r.id).filter(isOwed), c => c.amount);
     return `<button class="rrow ${r.id === cur.id ? 'on' : ''}" data-act="rset" data-id="${esc(r.id)}"><span class="emo">🏠</span><span class="cbody"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">${esc(r.desc || r.tenant || rentalPeriod(r))}</span></span>${due ? `<span class="amtv neg">${zl(due)}</span>` : '<span class="pos">✓</span>'}</button>`;
   }).join('')}</div>${S.readOnly ? '' : '<button class="btn sec" data-act="addrental">+ Nowy najem</button>'}`);
 }
@@ -737,6 +758,7 @@ function syncRd() {
   const d = S.rd; if (!d || !$('#rd-name')) return;
   d.name = $('#rd-name').value; d.desc = $('#rd-desc').value; d.tenant = $('#rd-tenant').value;
   d.from = $('#rd-from').value; d.to = $('#rd-to').value; d.dueDay = $('#rd-due').value; d.advance = $('#rd-adv').value === '1';
+  if ($('#rd-dep') && !$('#rd-dep').disabled) d.depTxt = $('#rd-dep').value;
   document.querySelectorAll('[data-it]').forEach(row => {
     const it = d.items[+row.dataset.it]; if (!it) return;
     it.name = row.querySelector('.itn').value; it.amountTxt = row.querySelector('.ita').value; it.taxable = row.querySelector('.itt').checked;
@@ -757,6 +779,9 @@ function renderRentalSheet() {
     <label class="f">Co miesiąc najemca płaci</label>
     ${d.items.map((it, i) => `<div class="itrow" data-it="${i}"><input class="itn" value="${esc(it.name)}" placeholder="np. Czynsz najmu"><input class="ita" inputmode="decimal" value="${esc(am(it))}" placeholder="0,00 zł"><button class="ib del" data-act="itdel" data-i="${i}" aria-label="Usuń pozycję">✕</button><label class="chk"><input type="checkbox" class="itt" ${it.taxable ? 'checked' : ''}> liczyć do podatku (${rateLabel()})</label></div>`).join('')}
     <button class="btn sec" data-act="itadd">+ Dodaj pozycję</button>
+    ${(() => { const dp = !d.isNew && depositOf(d.id); const v = d.depTxt !== undefined ? d.depTxt : toInput(dp ? dp.amount : 0);
+      return `<label class="f">🔐 Kaucja zwrotna (zł)</label><input id="rd-dep" inputmode="decimal" value="${esc(v)}" placeholder="0,00 – brak kaucji" ${dp && dp.paidOn ? 'disabled' : ''}>
+      <span class="hint">${dp && dp.paidOn ? `Kaucja wpłynęła ${esc(longDay(dp.paidOn))} – kwotę zmienisz, stukając ją na liście.` : 'Pojawi się w „Najemca ma zapłacić” z terminem w dniu początku najmu. Nie jest przychodem i nie liczy się do podatku – dopiero zatrzymana część przy rozliczeniu.'}</span>`; })()}
     ${ro ? '' : `<button class="btn" data-act="rsave">${d.isNew ? 'Dodaj najem' : 'Zapisz'}</button>`}
     ${(() => { const saved = !d.isNew && D().rentals[d.id]; if (ro || !saved) return ''; const fm = saved.from.slice(0, 7), gs = genStart(saved); if (gs <= fm) return '';
       const n = monthDiff(fm, gs); return `<button class="btn sec" data-act="rbackfill">➕ Dodaj wcześniejsze należności: od ${esc(monthLabel(fm))} (${n} ${plural(n, 'miesiąc', 'miesiące', 'miesięcy')})</button>`; })()}
@@ -782,6 +807,8 @@ async function saveRental() {
     items.push(it);
   }
   d.items = items;
+  const depAmt = d.depTxt !== undefined ? parseZl(d.depTxt) : null; delete d.depTxt;
+  if (depAmt !== null && (isNaN(depAmt) || depAmt < 0)) { toast('Popraw kwotę kaucji'); return; }
   const old = D().rentals[d.id], isNew = !old; delete d.isNew;
   if (isNew) {
     d.ts = Date.now(); const fm = d.from.slice(0, 7);
@@ -814,7 +841,15 @@ async function saveRental() {
       if (ch === 0) store.batch(() => { for (const [c, it] of upd) store.saveCharge(Object.assign(clone(c), {amount:it.amount, name:it.name, taxable:!!it.taxable})); });
     }
   }
-  if (!write(() => store.saveRental(d))) return;
+  if (!write(() => store.batch(() => {
+    store.saveRental(d);
+    // kaucja: dopóki nie wpłynęła, zmienia się razem z najmem
+    const dp = depositOf(d.id);
+    if (depAmt === null || (dp && dp.paidOn)) return;
+    if (depAmt > 0 && !dp) store.saveCharge({id:uid(), kind:'deposit', r:d.id, name:'Kaucja', amount:depAmt, d:d.from, m:d.from.slice(0, 7), ts:Date.now()});
+    else if (dp && !depAmt) store.deleteCharge(dp.id);
+    else if (dp && (dp.amount !== depAmt || dp.d !== d.from)) store.saveCharge(Object.assign(clone(dp), {amount:depAmt, d:d.from, m:d.from.slice(0, 7)}));
+  }))) return;
   setRid(d.id); closeSheet(); const n = ensureCharges();
   if (isNew) S.tab = 'najem';
   const nTxt = n ? ` · dodano ${n} ${plural(n, 'należność', 'należności', 'należności')}` : '';
@@ -827,16 +862,18 @@ function openCharge(id) {
   const c = D().charges[id]; if (!c) return;
   const paid = !!c.paidOn, ro = S.readOnly;
   openSheet(head(esc(c.name)) + `
-    <p class="sub">${c.kind === 'charge' ? `Należność za ${esc(monthYear(c.m))}` : 'Należność jednorazowa'} · termin ${esc(longDay(dueOf(c)))} · ${esc(D().rentals[c.r]?.name || '')}</p>
+    <p class="sub">${c.kind === 'charge' ? `Należność za ${esc(monthYear(c.m))}` : isDeposit(c) ? 'Kaucja zwrotna – nie jest przychodem ani podstawą podatku' : 'Należność jednorazowa'} · termin ${esc(longDay(dueOf(c)))} · ${esc(D().rentals[c.r]?.name || '')}</p>
     <label class="f">Nazwa</label><input id="pa-name" value="${esc(c.name)}">
     <label class="f">Kwota należna</label><input class="amt" id="pa-amt" inputmode="decimal" value="${esc(toInput(c.amount))}">
-    <label class="chk"><input type="checkbox" id="pa-tax" ${c.taxable ? 'checked' : ''}> liczyć do podatku (${rateLabel()})</label>
+    ${isDeposit(c) ? '<input type="checkbox" id="pa-tax" class="hidden">' : `<label class="chk"><input type="checkbox" id="pa-tax" ${c.taxable ? 'checked' : ''}> liczyć do podatku (${rateLabel()})</label>`}
     <div class="row2"><div><label class="f">Data wpłaty</label><input type="date" id="pa-date" value="${esc(c.paidOn || todayStr())}"></div>
     <div><label class="f">Kwota wpłacona</label><input id="pa-paid" inputmode="decimal" value="${esc(paid ? toInput(paidAmt(c)) : '')}" placeholder="${esc(toInput(c.amount) || '0,00')}"></div></div>
     <span class="hint">${paid ? `Wpłynęło ${esc(longDay(c.paidOn))}.` : 'Puste pole kwoty = wpłacona cała należność.'}</span>
     ${ro ? '' : paid
       ? `<button class="btn" data-act="pasave" data-id="${esc(id)}">Zapisz</button><button class="btn sec" data-act="paundo" data-id="${esc(id)}">↩️ Cofnij wpłatę (nieopłacone)</button>`
       : `<button class="btn" data-act="papay" data-id="${esc(id)}">💰 Wpłynęło</button><button class="btn sec" data-act="pasave" data-id="${esc(id)}">Zapisz bez wpłaty</button>`}
+    ${ro ? '' : isDeposit(c) && paid ? `<button class="btn" data-act="depset" data-id="${esc(id)}">${c.retOn ? '↩️ Rozliczenie kaucji (zwrot ' + zl(c.ret || 0) + ')' : '↩️ Rozlicz i zwróć kaucję'}</button>` : ''}
+    ${ro ? '' : c.kind === 'extra' && !c.fromDep && /kaucj/i.test(c.name) ? `<button class="btn sec" data-act="todep" data-id="${esc(id)}">🔐 Zamień na kaucję zwrotną (nie przychód)</button>` : ''}
     ${ro ? '' : `<button class="btn danger" data-act="padel" data-id="${esc(id)}">🗑 Usuń należność</button>`}`);
 }
 /* szybka wpłata: data wpływu (domyślnie dziś, a dla minionych miesięcy – termin płatności) */
@@ -876,12 +913,72 @@ function readCharge(c, withPay) {
 }
 function deleteCharge(c) {
   const r = D().rentals[c.r], prevR = r ? clone(r) : null;
+  const linked = isDeposit(c) ? chargesOf(c.r).filter(x => x.fromDep === c.id) : [];
   store.batch(() => {
-    store.deleteCharge(c.id);
+    store.deleteCharge(c.id); linked.forEach(x => store.deleteCharge(x.id));
     if (c.kind === 'charge' && r) { const nr = clone(r); nr.skip = [...new Set([...(nr.skip || []), c.m + '|' + c.item])]; store.saveRental(nr); }
   });
   closeSheet();
-  toast('Usunięto', () => store.batch(() => { store.saveCharge(c); if (prevR) store.saveRental(prevR); }));
+  toast('Usunięto', () => store.batch(() => { store.saveCharge(c); linked.forEach(x => store.saveCharge(x)); if (prevR) store.saveRental(prevR); }));
+}
+
+/* rozliczenie kaucji: potrącenia za szkody, zwrot reszty; zatrzymana część = przychód (domyślnie z podatkiem) */
+function openDeposit(id) {
+  const c = D().charges[id]; if (!c || !c.paidOn) return;
+  S.dep = {id, ded:(c.ded || []).map(x => ({name:x.name, amtTxt:toInput(x.amount)})), date:c.retOn || todayStr(), tax:c.retTax !== false};
+  renderDepSheet();
+}
+function syncDep() {
+  if (!S.dep || !$('#dep-date')) return;
+  S.dep.date = $('#dep-date').value; S.dep.tax = $('#dep-tax').checked;
+  document.querySelectorAll('[data-dd]').forEach(row => { const x = S.dep.ded[+row.dataset.dd]; if (x) { x.name = row.querySelector('.ddn').value; x.amtTxt = row.querySelector('.dda').value; } });
+}
+function depCalc() {
+  const c = D().charges[S.dep.id], total = paidAmt(c);
+  const ded = sum(S.dep.ded, x => { const v = parseZl(x.amtTxt); return isNaN(v) ? 0 : v; });
+  return {total, ded, ret:Math.max(0, total - ded), kept:Math.min(ded, total), over:Math.max(0, ded - total)};
+}
+function depSumHtml() {
+  const k = depCalc();
+  return `<div class="kv"><span>Kaucja</span><b>${zl(k.total)}</b></div>${k.ded ? `<div class="kv"><span>Potrącenia</span><b class="neg">−${zl(k.ded)}</b></div>` : ''}
+    <div class="kv"><span><b>Do zwrotu najemcy</b></span><b>${zl(k.ret)}</b></div>
+    ${k.kept ? `<div class="kv"><span>Zatrzymujesz (przychód${S.dep.tax ? ', z podatkiem' : ''})</span><b class="pos">${zl(k.kept)}</b></div>` : ''}
+    ${k.over ? `<div class="kv"><span>Szkody ponad kaucję – najemca dopłaca</span><b class="neg">${zl(k.over)}</b></div>` : ''}`;
+}
+function renderDepSheet() {
+  const c = D().charges[S.dep.id], d = S.dep;
+  openSheet(head('Rozliczenie kaucji') + `
+    <p class="sub">${esc(D().rentals[c.r]?.name || '')} · kaucja ${zl(paidAmt(c))}, otrzymana ${esc(longDay(c.paidOn))}</p>
+    <label class="f">Potrącenia (uszkodzenia, zaległości)</label>
+    ${d.ded.map((x, i) => `<div class="itrow" data-dd="${i}"><input class="ddn" value="${esc(x.name)}" placeholder="np. uszkodzona podłoga"><input class="dda" inputmode="decimal" value="${esc(x.amtTxt)}" placeholder="0,00 zł"><button class="ib del" data-act="dddel" data-i="${i}" aria-label="Usuń potrącenie">✕</button></div>`).join('') || '<p class="sub">Brak potrąceń – zwracasz całą kaucję.</p>'}
+    <button class="btn sec" data-act="ddadd">+ Dodaj potrącenie</button>
+    <label class="f">Data zwrotu</label><input type="date" id="dep-date" value="${esc(d.date)}">
+    <label class="chk"><input type="checkbox" id="dep-tax" ${d.tax ? 'checked' : ''}> zatrzymaną część liczyć do podatku (${rateLabel()})</label>
+    <span class="hint">Zatrzymana kwota pokrywa szkody, więc zwykle jest przychodem z najmu. W razie wątpliwości zapytaj księgową. Koszty naprawy dodaj osobno jako koszt.</span>
+    <div class="card list" id="dep-sum" style="margin-top:12px">${depSumHtml()}</div>
+    ${S.readOnly ? '' : `<button class="btn" data-act="depsave">✓ Zapisz rozliczenie</button>${c.retOn ? '<button class="btn sec" data-act="depundo">↩️ Cofnij rozliczenie (kaucja znów u mnie)</button>' : ''}`}`, {dep:true});
+}
+function saveDeposit() {
+  syncDep(); const d = S.dep, c = D().charges[d.id];
+  if (!isDate(d.date)) { toast('Wpisz datę zwrotu'); return; }
+  const ded = [];
+  for (const x of d.ded) {
+    const a = parseZl(x.amtTxt), name = (x.name || '').trim();
+    if (!name && !a) continue;
+    if (isNaN(a) || a <= 0) { toast('Popraw kwotę potrącenia' + (name ? ': ' + name : '')); return; }
+    ded.push({name:name || 'potrącenie', amount:a});
+  }
+  const k = depCalc(), names = ded.map(x => x.name).join(', ');
+  const linked = chargesOf(c.r).filter(x => x.fromDep === c.id);
+  store.batch(() => {
+    linked.forEach(x => store.deleteCharge(x.id));
+    store.saveCharge(Object.assign(clone(c), {retOn:d.date, ret:k.ret, ded, retTax:d.tax}));
+    const base = {r:c.r, d:d.date, m:d.date.slice(0, 7), taxable:d.tax, fromDep:c.id, ts:Date.now()};
+    if (k.kept) store.saveCharge(Object.assign({id:uid(), kind:'extra', name:'Zatrzymane z kaucji' + (names ? ': ' + names : ''), amount:k.kept, paidOn:d.date}, base));
+    if (k.over) store.saveCharge(Object.assign({id:uid(), kind:'extra', name:'Dopłata za szkody ponad kaucję', amount:k.over}, base));
+  });
+  closeSheet();
+  toast(`Kaucja rozliczona: zwrot ${zl(k.ret)}${k.kept ? `, zatrzymane ${zl(k.kept)}` : ''}`, () => store.batch(() => { chargesOf(c.r).filter(x => x.fromDep === c.id).forEach(x => store.deleteCharge(x.id)); store.saveCharge(c); linked.forEach(x => store.saveCharge(x)); }));
 }
 
 /* jednorazowa należność */
@@ -985,6 +1082,8 @@ async function exportXlsx() {
   X.utils.book_append_sheet(wb, sheet([['Miesiąc wpłat', 'Najem', 'Przychód', 'Podatek', 'Termin', 'Zapłacono', 'Status'], ...taxes], ['C', 'D'], [13, 22, 13, 12, 12, 12, 12]), 'Podatek');
   X.utils.book_append_sheet(wb, sheet([['Data', 'Najem', 'Za co', 'Kwota', 'Notatka'], ...costs], ['D'], [12, 22, 24, 13, 30]), 'Koszty');
   X.utils.book_append_sheet(wb, sheet([['Termin', 'Najem', 'Pozycja', 'Za miesiąc', 'Kwota'], ...open], ['E'], [12, 22, 20, 12, 13]), 'Nieopłacone');
+  const deps = all.filter(isDeposit).map(c => [rn(c.r), c.amount / 100, c.paidOn || '', c.retOn || '', c.retOn ? (c.ret || 0) / 100 : '', (c.ded || []).map(x => `${x.name} ${(x.amount / 100).toFixed(2).replace('.', ',')} zł`).join('; '), !c.paidOn ? 'do wpłaty' : c.retOn ? 'rozliczona' : 'u mnie']);
+  if (deps.length) X.utils.book_append_sheet(wb, sheet([['Najem', 'Kaucja', 'Otrzymana', 'Zwrócona', 'Kwota zwrotu', 'Potrącenia', 'Status'], ...deps], ['B', 'E'], [22, 13, 12, 12, 13, 36, 12]), 'Kaucje');
   const out = X.write(wb, {bookType:'xlsx', type:'array'});
   const r = await shareOrDownload(new Blob([out], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}), `najem-${todayStr()}.xlsx`, 'Najem – zestawienie');
   if (r === 'downloaded') toast('Plik Excel zapisany w Pobranych');
@@ -1116,7 +1215,7 @@ document.addEventListener('touchend', e => {
 }, {passive:true});
 
 /* ---------- akcje ---------- */
-const RO_OK = ['close', 'tab', 'rprev', 'rnext', 'rpick', 'rset', 'yprev', 'ynext', 'ynow', 'cyprev', 'cynext', 'cmsel', 'theme', 'redit', 'charge', 'cost', 'tax'];
+const RO_OK = ['close', 'tab', 'rprev', 'rnext', 'rpick', 'rset', 'yprev', 'ynext', 'ynow', 'cyprev', 'cynext', 'cmsel', 'theme', 'redit', 'charge', 'cost', 'tax', 'depset'];
 document.addEventListener('click', async e => {
   if (Date.now() - MS_T < 400) return;
   const el = e.target.closest('[data-act]'); if (!el || L.mode) return;
@@ -1195,6 +1294,24 @@ document.addEventListener('click', async e => {
     }
 
     /* należności */
+    case 'depset': openDeposit(ds.id); break;
+    case 'ddadd': syncDep(); S.dep.ded.push({name:'', amtTxt:''}); renderDepSheet(); { const r = document.querySelectorAll('.ddn'); r[r.length - 1]?.focus(); } break;
+    case 'dddel': syncDep(); S.dep.ded.splice(+ds.i, 1); renderDepSheet(); break;
+    case 'depsave': saveDeposit(); break;
+    case 'depundo': {
+      const c = D().charges[S.dep.id], linked = chargesOf(c.r).filter(x => x.fromDep === c.id);
+      if (linked.some(x => x.paidOn && x.name.startsWith('Dopłata'))) { if (!(await ask('Dopłata za szkody jest już oznaczona jako wpłacona. Cofnąć rozliczenie razem z nią?', 'Cofnij'))) return; }
+      const n = clone(c); delete n.retOn; delete n.ret; delete n.ded; delete n.retTax;
+      store.batch(() => { linked.forEach(x => store.deleteCharge(x.id)); store.saveCharge(n); });
+      closeSheet(); toast('Rozliczenie cofnięte – kaucja znów u Ciebie', () => store.batch(() => { store.saveCharge(c); linked.forEach(x => store.saveCharge(x)); }));
+      break;
+    }
+    case 'todep': {
+      const c = D().charges[ds.id]; if (!c) return;
+      const n = clone(c); n.kind = 'deposit'; delete n.taxable;
+      store.saveCharge(n); closeSheet(); toast('Zamieniono na kaucję zwrotną – nie liczy się już do przychodu ani podatku', () => store.saveCharge(c));
+      break;
+    }
     case 'paid': openPayQuick([ds.id]); break;
     case 'paidall': openPayQuick(chargesOf(curR().id).filter(c => isIncome(c) && !c.paidOn && c.m === ds.m).map(c => c.id)); break;
     case 'pqd': $('#pq-date').value = ds.d; break;
@@ -1218,6 +1335,7 @@ document.addEventListener('click', async e => {
     }
     case 'paundo': {
       const c = D().charges[ds.id]; if (!c) return;
+      if (c.retOn) { toast('Najpierw cofnij rozliczenie kaucji'); return; }
       const n = clone(c); delete n.paidOn; delete n.paid;
       store.saveCharge(n); closeSheet(); toast('Wpłata cofnięta', () => store.saveCharge(c));
       break;
@@ -1272,7 +1390,10 @@ document.addEventListener('click', async e => {
   }
 });
 $('#importFile').addEventListener('change', e => { const f = e.target.files && e.target.files[0]; if (f) importFile(f); });
-document.addEventListener('input', e => { if (e.target.id === 'tx-plan') txHint(); });
+document.addEventListener('input', e => {
+  if (e.target.id === 'tx-plan') txHint();
+  if (S.dep && S.sheet && S.sheet.dep && e.target.closest('#sheet')) { syncDep(); const s = $('#dep-sum'); if (s) s.innerHTML = depSumHtml(); }
+});
 document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches('.sheet input')) { e.preventDefault(); e.target.blur(); } });
 
 /* ---------- start ---------- */
