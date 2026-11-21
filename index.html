@@ -158,6 +158,12 @@ details.help li{margin:4px 0}
 .dsep::before{flex:0 0 14px}
 .dsep.end{margin:8px 2px 4px}
 .dsep.end::before{display:none}
+.osep{display:flex;align-items:center;gap:10px;margin:22px 2px 6px;color:var(--c-pod);font-size:13px;font-weight:700;letter-spacing:.02em}
+.osep::before,.osep::after{content:"";flex:1;height:2px;background:var(--c-pod);opacity:.6;border-radius:1px}
+.osep::before{flex:0 0 14px}
+.osep.end{margin:10px 2px 4px}
+.osep.end::before{display:none}
+.card.ocard{border-color:color-mix(in srgb,var(--c-pod) 45%,var(--line))}
 .card.dcard{border-color:color-mix(in srgb,var(--c-kos) 45%,var(--line))}
 /* PIN */
 .lock{position:fixed;inset:0;z-index:28;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
@@ -216,7 +222,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.15';
+const APP_VERSION = '1.16';
 const APP_DATE = '2026-11-21';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -535,22 +541,23 @@ function rentalHtml(r) {
   const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'pl');
   // 1. Najemca ma zapłacić – od najstarszego terminu
   const todo = unpaid.slice().sort((a, b) => dueOf(a).localeCompare(dueOf(b)) || byName(a, b));
-  h += `<h3>💰 Najemca ma zapłacić<span class="${over.length ? 'neg' : ''}">${todo.length ? zl(due) : ''}</span></h3>`;
+  h += `<div class="osep"><span>💰 Najemca ma zapłacić${todo.length ? ' · ' + zl(due) : ''}${over.length ? ' · po terminie ' + zl(overSum) : ''}</span></div>`;
   if (todo.length) {
     // pogrupowane po miesiącu, za który jest należność (czynsz + opłaty zwykle jednym przelewem)
     const months = [...new Set(todo.map(c => c.m))];
     for (const m of months) {
       const g = todo.filter(c => c.m === m);
       h += `<div class="dhead"><span>Za ${esc(monthYear(m))}${g.length > 1 ? ' · ' + zl(sum(g, c => c.amount)) : ''}</span>${g.length > 1 && !S.readOnly ? `<button class="chip" data-act="paidall" data-m="${m}">💰 Wpłynęło wszystko</button>` : ''}</div>`;
-      h += `<div class="card list">${g.map(c => rowHtml({t:'charge', c, inTodo:true})).join('')}</div>`;
+      h += `<div class="card list ocard">${g.map(c => rowHtml({t:'charge', c, inTodo:true})).join('')}</div>`;
     }
-  } else h += `<div class="card"><span class="pos">✓ Nic do zapłaty</span></div>`;
+  } else h += `<div class="card ocard"><span class="pos">✓ Nic do zapłaty</span></div>`;
   // 2. Podatek do zapłaty – zamknięte miesiące, potem naliczany za bieżący
   const taxOpen = taxes.filter(t => !t.paid && t.open);
   if (taxTodo.length || taxOpen.length) {
     const tl = taxTodo.slice().sort((a, b) => a.m.localeCompare(b.m)).concat(taxOpen);
-    h += `<h3>🧾 Podatek do zapłaty<span class="${taxTodo.length ? 'neg' : ''}">${taxTodo.length ? zl(sum(taxTodo, t => t.amount)) : ''}</span></h3><div class="card list">${tl.map(x => rowHtml({t:'tax', x})).join('')}</div>`;
+    h += `<div class="osep"><span>🧾 Podatek do zapłaty${taxTodo.length ? ' · ' + zl(sum(taxTodo, t => t.amount)) : ''}</span></div><div class="card list ocard">${tl.map(x => rowHtml({t:'tax', x})).join('')}</div>`;
   }
+  h += '<div class="osep end"></div>';
   // zestawienie roku – wykres
   h += yearChartHtml([r.id]);
   // kaucja trzymana – do rozliczenia i zwrotu

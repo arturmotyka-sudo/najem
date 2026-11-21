@@ -1,7 +1,7 @@
 {
-  "version": "1.15",
+  "version": "1.16",
   "date": "2026-11-21",
   "changes": [
-    "„Kaucja u mnie” jest teraz pod wykresem zestawienia, nad historią, oddzielona niebieskimi kreskami"
+    "„Najemca ma zapłacić” i „Podatek do zapłaty” wyróżnione pomarańczowymi kreskami (z kwotą do zapłaty), z kreską zamykającą pod spodem"
   ]
 }
