@@ -1,9 +1,9 @@
 {
-  "version": "1.12",
+  "version": "1.13",
   "date": "2026-11-21",
   "changes": [
-    "Historia podzielona na miesiące: kreska z nazwą miesiąca i roku",
-    "Kaucja w zestawieniu jako osobna pozycja „Kaucja do zwrotu” – na górze „Zostaje u mnie” = zysk + kaucja",
-    "Nowa strona „📊 Wszystkie najmy”: przeciągnij palcem za ostatni najem (albo wybierz z listy najmów) – razem do zapłaty, podatek, kaucje, zysk każdego najmu i wspólne zestawienie roku"
+    "Opłaty przekazywane dalej (np. do spółdzielni) nie liczą się już do zysku: przy pozycji w najmie jest pole „przekazuję dalej”",
+    "Istniejące pozycje bez podatku typu Opłaty, Prąd, Woda, Gaz zostały oznaczone automatycznie – sprawdź na karcie najmu",
+    "Najemca nadal ma je do zapłaty; w zestawieniu są pokazane osobno jako „Opłaty przekazane dalej”"
   ]
 }
