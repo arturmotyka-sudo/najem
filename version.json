@@ -1,7 +1,7 @@
 {
-  "version": "1.16",
+  "version": "1.17",
   "date": "2026-11-21",
   "changes": [
-    "„Najemca ma zapłacić” i „Podatek do zapłaty” wyróżnione pomarańczowymi kreskami (z kwotą do zapłaty), z kreską zamykającą pod spodem"
+    "Najmy przełączysz przeciągnięciem palca w lewo / w prawo także po karcie z opisem najmu (nie tylko po „Najemca ma do zapłaty”)"
   ]
 }

@@ -222,7 +222,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.16';
+const APP_VERSION = '1.17';
 const APP_DATE = '2026-11-21';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -527,7 +527,7 @@ function rentalHtml(r) {
     else if (gs > fm && fm <= curMonth()) { const n = monthDiff(fm, gs); h += `<div class="banner info">📅 Należności są od ${esc(monthYear(gs))}, a najem trwa od ${esc(monthYear(fm))}.<button data-act="rbackfill" data-id="${esc(r.id)}">Dodaj wcześniejsze (${n} ${plural(n, 'miesiąc', 'miesiące', 'miesięcy')})</button></div>`; }
   }
   // karta najmu
-  h += `<button class="card" style="display:block;width:100%;text-align:left" data-act="redit" data-id="${esc(r.id)}">
+  h += `<button class="card rcard" style="display:block;width:100%;text-align:left" data-act="redit" data-id="${esc(r.id)}">
     <div class="crow"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">✏️ edytuj</span></div>
     ${r.desc ? `<span class="sub" style="color:var(--ink);margin-top:2px">${esc(r.desc)}</span>` : ''}
     ${r.tenant ? `<span class="sub">👤 ${esc(r.tenant)}</span>` : ''}
@@ -732,7 +732,7 @@ function settingsHtml() {
 function helpHtml() {
   return `<details class="help" open><summary>🔄 Aktualizacja ${S.remote && !S.remote.error ? (verNewer(S.remote.version, APP_VERSION) ? '<span class="ubadge new">nowa wersja</span>' : '<span class="ubadge ok">aktualna</span>') : '<span class="ubadge chk">sprawdzam</span>'}</summary>${updateHtml()}</details>
   <details class="help"><summary>🏠 Najmy</summary>
-    <p>Każdy najem ma swoją stronę. Przełączasz je strzałkami ‹ › na górze, przeciągnięciem palca po karcie „Najemca ma do zapłaty” albo stukając w nazwę (lista wszystkich najmów). Za ostatnim najmem (przeciągnij dalej albo wybierz z listy) jest strona <b>📊 Wszystkie najmy</b>: razem do zapłaty, podatek, kaucje, zysk każdego najmu i wspólne zestawienie roku.</p>
+    <p>Każdy najem ma swoją stronę. Przełączasz je strzałkami ‹ › na górze, przeciągnięciem palca po karcie „Najemca ma do zapłaty” lub po karcie z opisem najmu albo stukając w nazwę (lista wszystkich najmów). Za ostatnim najmem (przeciągnij dalej albo wybierz z listy) jest strona <b>📊 Wszystkie najmy</b>: razem do zapłaty, podatek, kaucje, zysk każdego najmu i wspólne zestawienie roku.</p>
     <p>W najmie wpisujesz: nazwę, czego dotyczy (np. adres, miejsce postojowe), najemcę, okres (od – do; puste „do” = na czas nieokreślony), dzień płatności i pozycje płacone co miesiąc, np. <b>Czynsz najmu</b> i <b>Opłaty</b>. Przy każdej pozycji zaznaczasz, czy liczy się do podatku.</p>
     <p><b>Zmiana czynszu</b> (np. podwyżka): w edycji najmu wpisz nową kwotę. Przy zapisie wybierz z listy, od którego miesiąca obowiązuje – dowolny, od początku najmu do roku naprzód (także wstecz, gdy wpisujesz historię). Jeśli od tego miesiąca są już wpłaty zapisane ze starą kwotą, aplikacja zapyta, czy je poprawić; nieopłacone od wybranego miesiąca dostaną nową kwotę. Karta najmu pokaże zapowiedź, a edycja najmu – historię kwot.</p>
     <p><b>Notatki:</b> przy każdej należności i wpłacie możesz dopisać notatkę (w okienku „Wpłynęło” albo po stuknięciu pozycji), np. „zapłacone w lipcu razem z sierpniem”. Notatka jest widoczna na liście i w Excelu.</p>
@@ -1376,7 +1376,8 @@ function stepRental(dir) {
 let MS = null, MS_T = 0;
 document.addEventListener('touchstart', e => {
   MS = null; if (S.sheet || e.touches.length !== 1 || S.tab !== 'najem') return;
-  if (!e.target.closest('.hero')) return;
+  // przeciąganie: karta „Najemca ma do zapłaty” i karta z opisem najmu
+  if (!e.target.closest('.hero, .rcard')) return;
   const t = e.touches[0]; MS = {x:t.clientX, y:t.clientY};
 }, {passive:true});
 document.addEventListener('touchend', e => {

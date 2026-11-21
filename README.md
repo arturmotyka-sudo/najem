@@ -1,6 +1,6 @@
 # Najem – rozliczenia najmu na telefon
 
-**Wersja 1.16** · prosta aplikacja do pilnowania najmów: comiesięczne należności od najemcy, wpłaty, podatek (ryczałt 8,5%) i koszty. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em. Siostrzana aplikacja do „Budżetu domowego”: ta sama technologia i ten sam wygląd.
+**Wersja 1.17** · prosta aplikacja do pilnowania najmów: comiesięczne należności od najemcy, wpłaty, podatek (ryczałt 8,5%) i koszty. Działa bez internetu, dane są zapisane **tylko w Twoim telefonie**, chronione PIN-em. Siostrzana aplikacja do „Budżetu domowego”: ta sama technologia i ten sam wygląd.
 
 Pełna instrukcja obsługi jest w aplikacji, w zakładce **❓ Pomoc**.
 
@@ -43,7 +43,7 @@ Numer wersji jest w trzech miejscach i musi być wszędzie taki sam: `APP_VERSIO
 - **Opłaty przekazywane dalej** – przy pozycji (np. Opłaty, Prąd) zaznacz „przekazuję dalej (np. do spółdzielni)”: najemca nadal ma je do zapłaty, ale nie liczą się do „Wpłynęło” ani do zysku; w zestawieniu są osobno jako „Opłaty przekazane dalej”.
 - **Ikony** – jak w Budżecie: ikona najmu i każdej pozycji (w edycji najmu, przycisk obok nazwy) oraz pojedynczego wpisu (w okienku po stuknięciu); domyślnie dobierane według nazwy.
 - **Notatki** – przy każdej należności i wpłacie (np. „zapłacone w lipcu razem z sierpniem”); widoczne na liście i w Excelu.
-- **Jeden najem = jedna strona** – przełączanie strzałkami ‹ ›, przeciągnięciem palca po karcie podsumowania albo z listy po stuknięciu w nazwę. Za ostatnim najmem jest strona **„📊 Wszystkie najmy”**: razem do zapłaty, podatek, kaucje, zysk każdego najmu i wspólne zestawienie roku.
+- **Jeden najem = jedna strona** – przełączanie strzałkami ‹ ›, przeciągnięciem palca po karcie podsumowania lub karcie z opisem najmu albo z listy po stuknięciu w nazwę. Za ostatnim najmem jest strona **„📊 Wszystkie najmy”**: razem do zapłaty, podatek, kaucje, zysk każdego najmu i wspólne zestawienie roku.
 - **Należności co miesiąc** – 1. dnia miesiąca pojawiają się same, z terminem płatności i oznaczeniem „po terminie”.
 - **💰 Wpłynęło** – okienko z datą wpływu (Dziś / Wczoraj / W terminie / dowolna) i kwotą; pozycja przeskakuje pod dzień wpłaty. Dla minionych miesięcy domyślną datą jest termin płatności. Przyciskiem **✓ 📅** przy opłaconej pozycji zmienisz datę, kwotę (wpłata częściowa) albo cofniesz wpłatę. „Wpłynęło wszystko” opłaca wszystkie pozycje z danego dnia naraz.
 - **Starsza umowa** – najem z datą początku w przeszłości („od początku najmu”) i jeden przycisk „Oznacz jako wpłacone w terminie” dla wszystkich zaległych; pojedyncze daty poprawiasz potem przyciskiem ✓ 📅.
@@ -64,6 +64,7 @@ Numer wersji jest w trzech miejscach i musi być wszędzie taki sam: `APP_VERSIO
 
 ## Historia wersji
 
+- **1.17** – przełączanie najmów przeciągnięciem palca także po karcie z opisem najmu.
 - **1.16** – strefa „do zrobienia” (Najemca ma zapłacić, Podatek do zapłaty) wyróżniona pomarańczowymi kreskami.
 - **1.15** – „Kaucja u mnie” przeniesiona pod wykres, nad historię, oddzielona niebieskimi kreskami.
 - **1.14** – zmiana ikon: najmu, pozycji (Czynsz, Opłaty…) i pojedynczych wpisów; „Automatycznie” przywraca ikonę według nazwy.
