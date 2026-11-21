@@ -202,7 +202,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.7';
+const APP_VERSION = '1.8';
 const APP_DATE = '2026-11-21';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -487,7 +487,7 @@ function rentalHtml(r) {
     ${r.desc ? `<span class="sub" style="color:var(--ink);margin-top:2px">${esc(r.desc)}</span>` : ''}
     ${r.tenant ? `<span class="sub">👤 ${esc(r.tenant)}</span>` : ''}
     <span class="sub">📅 ${esc(rentalPeriod(r))} · ${esc(dueText(r))}</span>
-    <span class="sub">💵 ${(r.items || []).filter(i => i.amount).map(i => `${esc(i.name)} ${zl(i.amount)}${i.taxable ? '' : ' (bez podatku)'}`).join(' · ') || 'brak kwot'}${(r.items || []).filter(i => i.amount).length > 1 ? ` · razem <b>${zl(monthlyTotal(r))}</b>` : ''}</span>
+    <span class="sub">💵 ${(r.items || []).filter(i => i.amount).map(i => `${esc(i.name)} ${zl(i.amount)} (${i.taxable ? 'z podatkiem' : 'bez podatku'})`).join(' · ') || 'brak kwot'}${(r.items || []).filter(i => i.amount).length > 1 ? ` · razem <b>${zl(monthlyTotal(r))}</b>` : ''}</span>
     ${(() => { const dp = depositOf(r.id); return dp ? `<span class="sub">🔐 Kaucja ${zl(dp.amount)} · ${dp.retOn ? `rozliczona ${shortDay(dp.retOn)}` : dp.paidOn ? 'u Ciebie, do zwrotu' : 'do wpłaty'}</span>` : ''; })()}</button>`;
   if (!ch.length && !taxes.length) return h + `<div class="empty">Brak wpisów. ${r.from > today ? `Pierwsze należności pojawią się ${longDay(r.from.slice(0, 7) + '-01')}.` : 'Uzupełnij kwoty w najmie (✏️ edytuj).'}</div>`;
   const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'pl');
@@ -669,7 +669,7 @@ function helpHtml() {
     <li>Podstawa i podatek są zaokrąglane do pełnych złotych: poniżej 50 gr w dół, od 50 gr w górę (np. 25,49 zł → 25 zł, 25,50 zł → 26 zł). Podatek za bieżący miesiąc rośnie z każdą wpłatą („naliczany”).</li>
     <li>W zakładce <b>Podatek</b> widzisz wszystkie najmy razem, miesiąc po miesiącu, i możesz jednym przyciskiem oznaczyć cały miesiąc jako zapłacony.</li>
     <li>Powyżej 100 000 zł przychodu w roku stawka od nadwyżki to 12,5% – wtedy zmień stawkę w Ustawieniach.</li>
-    <li>Czy opłaty (media) liczyć do podatku, zależy od umowy – w razie wątpliwości zapytaj księgową.</li></ul></details>
+    <li><b>Podatek liczy się tylko od czynszu.</b> Opłaty, jednorazowe należności i kaucja są domyślnie bez podatku. Przy każdej pozycji (w najmie i w jej okienku) możesz to zmienić polem „liczyć do podatku”; na karcie najmu przy każdej pozycji widać „z podatkiem” albo „bez podatku”.</li></ul></details>
   <details class="help"><summary>📅 Płatność z góry</summary>
     <p>Jeśli najemca płaci z góry (np. za wrzesień do końca sierpnia), w najmie (✏️ edytuj) wybierz „Kiedy najemca płaci: z góry – w poprzednim miesiącu” i dzień 31 (= do końca miesiąca). Należność za kolejny miesiąc pojawi się już na początku bieżącego, z terminem w bieżącym miesiącu, a wpłata trafi do podatku miesiąca, w którym wpłynęła.</p></details>
   <details class="help"><summary>📊 Zestawienie roku</summary>
@@ -678,7 +678,7 @@ function helpHtml() {
     <ul><li>Kwotę kaucji wpisz w edycji najmu (✏️ edytuj → „Kaucja zwrotna”). Pojawi się w „Najemca ma zapłacić” z terminem w dniu początku najmu.</li>
     <li>Kaucja nie jest przychodem: nie liczy się do podatku, „Wpłynęło” ani zysku. Gdy wpłynie, jest w karcie <b>Kaucja u mnie</b>.</li>
     <li>Na koniec najmu stuknij <b>Rozlicz i zwróć</b>: dopisz potrącenia (np. uszkodzona podłoga 500 zł), datę zwrotu – aplikacja policzy, ile oddać. Zwrot pojawi się w Historii.</li>
-    <li>Zatrzymana część staje się przychodem z datą zwrotu (domyślnie z podatkiem – można odznaczyć). Jeśli szkody są większe niż kaucja, różnica pojawi się jako dopłata do zapłaty przez najemcę. Koszty naprawy dodaj osobno jako koszt.</li>
+    <li>Zatrzymana część zapisuje się z datą zwrotu – domyślnie bez podatku (można zaznaczyć, jeśli księgowa uzna ją za przychód). Jeśli szkody są większe niż kaucja, różnica pojawi się jako dopłata do zapłaty przez najemcę. Koszty naprawy dodaj osobno jako koszt.</li>
     <li>Rozliczenie można poprawić albo cofnąć. Kaucję wpisaną wcześniej jako jednorazową należność zamienisz na kaucję zwrotną – stuknij ją na liście.</li></ul></details>
   <details class="help"><summary>🔧 Koszty</summary>
     <p>Koszty (naprawy, wyposażenie, ubezpieczenie, czynsz do wspólnoty) dodajesz przyciskiem <b>+</b>. Przy ryczałcie nie zmniejszają podatku – służą do policzenia, ile naprawdę zostaje z najmu („Zostaje” na górze).</p></details>
@@ -750,7 +750,7 @@ function openPick() {
 function openRental(id) {
   const r = id && D().rentals[id];
   S.rd = r ? clone(r) : {id:uid(), name:'', desc:'', tenant:'', from:todayStr(), to:'', dueDay:10,
-    items:[{id:uid(), name:'Czynsz najmu', amount:0, taxable:true}, {id:uid(), name:'Opłaty', amount:0, taxable:true}]};
+    items:[{id:uid(), name:'Czynsz najmu', amount:0, taxable:true}, {id:uid(), name:'Opłaty', amount:0, taxable:false}]};
   S.rd.isNew = !r;
   renderRentalSheet();
 }
@@ -840,6 +840,18 @@ async function saveRental() {
       if (ch < 0) return;
       if (ch === 0) store.batch(() => { for (const [c, it] of upd) store.saveCharge(Object.assign(clone(c), {amount:it.amount, name:it.name, taxable:!!it.taxable})); });
     }
+    // zmiana „liczyć do podatku” – także we wpłatach już zapisanych (podatek się przeliczy)
+    const taxUpd = [];
+    for (const it of d.items) {
+      const o = old.items.find(x => x.id === it.id); if (!o || !!o.taxable === !!it.taxable) continue;
+      for (const c of chargesOf(d.id)) if (c.kind === 'charge' && c.item === it.id && c.paidOn && !!c.taxable !== !!it.taxable) taxUpd.push([c, it]);
+    }
+    if (taxUpd.length) {
+      const names = [...new Set(taxUpd.map(([, it]) => it.name))].join(', ');
+      const ch = await choose(`„${names}” – ${taxUpd[0][1].taxable ? 'liczyć do podatku' : 'nie liczyć do podatku'} także we wpłatach już zapisanych (${taxUpd.length})? Podatek za te miesiące się przeliczy.`, [{label:'Tak, także we wpłatach'}, {label:'Nie, tylko od teraz', cls:'sec'}]);
+      if (ch < 0) return;
+      if (ch === 0) store.batch(() => { for (const [c, it] of taxUpd) store.saveCharge(Object.assign(clone(c), {taxable:!!it.taxable})); });
+    }
   }
   if (!write(() => store.batch(() => {
     store.saveRental(d);
@@ -925,7 +937,7 @@ function deleteCharge(c) {
 /* rozliczenie kaucji: potrącenia za szkody, zwrot reszty; zatrzymana część = przychód (domyślnie z podatkiem) */
 function openDeposit(id) {
   const c = D().charges[id]; if (!c || !c.paidOn) return;
-  S.dep = {id, ded:(c.ded || []).map(x => ({name:x.name, amtTxt:toInput(x.amount)})), date:c.retOn || todayStr(), tax:c.retTax !== false};
+  S.dep = {id, ded:(c.ded || []).map(x => ({name:x.name, amtTxt:toInput(x.amount)})), date:c.retOn || todayStr(), tax:c.retTax === true};
   renderDepSheet();
 }
 function syncDep() {
@@ -954,7 +966,7 @@ function renderDepSheet() {
     <button class="btn sec" data-act="ddadd">+ Dodaj potrącenie</button>
     <label class="f">Data zwrotu</label><input type="date" id="dep-date" value="${esc(d.date)}">
     <label class="chk"><input type="checkbox" id="dep-tax" ${d.tax ? 'checked' : ''}> zatrzymaną część liczyć do podatku (${rateLabel()})</label>
-    <span class="hint">Zatrzymana kwota pokrywa szkody, więc zwykle jest przychodem z najmu. W razie wątpliwości zapytaj księgową. Koszty naprawy dodaj osobno jako koszt.</span>
+    <span class="hint">Domyślnie bez podatku. Zaznacz, jeśli księgowa uzna zatrzymaną kwotę za przychód z najmu. Koszty naprawy dodaj osobno jako koszt.</span>
     <div class="card list" id="dep-sum" style="margin-top:12px">${depSumHtml()}</div>
     ${S.readOnly ? '' : `<button class="btn" data-act="depsave">✓ Zapisz rozliczenie</button>${c.retOn ? '<button class="btn sec" data-act="depundo">↩️ Cofnij rozliczenie (kaucja znów u mnie)</button>' : ''}`}`, {dep:true});
 }
@@ -988,7 +1000,7 @@ function openExtra() {
     <label class="f">Kwota</label><input class="amt" id="ex-amt" inputmode="decimal" placeholder="0,00">
     <label class="f">Za co</label><input id="ex-name" placeholder="np. dopłata za media, kaucja">
     <label class="f">Termin płatności</label><input type="date" id="ex-date" value="${todayStr()}">
-    <label class="chk"><input type="checkbox" id="ex-tax" checked> liczyć do podatku (${rateLabel()})</label>
+    <label class="chk"><input type="checkbox" id="ex-tax"> liczyć do podatku (${rateLabel()})</label>
     ${rentalChips(r.id)}
     <button class="btn" data-act="exsave">Dodaj</button>`, {r:r.id});
 }
