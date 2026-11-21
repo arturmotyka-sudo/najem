@@ -1,10 +1,9 @@
 {
-  "version": "1.5",
-  "date": "2026-11-20",
+  "version": "1.6",
+  "date": "2026-11-21",
   "changes": [
-    "Nowy układ strony najmu: na górze „Najemca ma zapłacić” – nieopłacone czynsze i opłaty, pogrupowane po miesiącach, od najstarszego",
-    "Pod spodem „Podatek do zapłaty” (i naliczany za bieżący miesiąc)",
-    "Na dole „Historia”: wpłaty, zapłacone podatki i koszty od najnowszych, pogrupowane po dniach",
-    "„Wpłynęło wszystko” osobno dla każdego miesiąca"
+    "Płatność z góry: w najmie wybierz „Kiedy najemca płaci: z góry – w poprzednim miesiącu” i dzień (31 = do końca miesiąca). Należność za kolejny miesiąc pojawia się wcześniej, z właściwym terminem",
+    "Podatek przy każdej wpłacie: w historii każda wpłata pokazuje swój podatek, a podatek za miesiąc pokazuje, z ilu wpłat się składa",
+    "Zestawienie roku jako wykres: zysk, pasek wpłynęło = zysk + podatek + koszty, słupki miesięcy (stuknij miesiąc, żeby zobaczyć szczegóły), przełączanie lat"
   ]
 }

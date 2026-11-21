@@ -121,6 +121,30 @@ details.help[open] summary::after{transform:rotate(-90deg)}
 details.help p,details.help ol,details.help ul{font-size:14px;margin:0 0 12px}
 details.help ol,details.help ul{padding-left:20px}
 details.help li{margin:4px 0}
+/* wykres zestawienia – kolory z palety sprawdzonej pod kątem daltonizmu (osobne odcienie dla ciemnego motywu) */
+:root{--c-zysk:#1baf7a;--c-pod:#eb6834;--c-kos:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--c-zysk:#199e70;--c-pod:#d95926;--c-kos:#3987e5}}
+:root[data-theme=dark]{--c-zysk:#199e70;--c-pod:#d95926;--c-kos:#3987e5}
+.chart .k{display:block;color:var(--mute);font-size:13px;font-weight:600}
+.bigz{display:block;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+.ynav{display:flex;gap:6px;align-self:flex-start}
+.ynav button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:18px;line-height:1}
+.sbar{display:flex;gap:2px;height:14px;margin:12px 0 8px}
+.sbar i{display:block;min-width:3px;border-radius:4px}
+.leg{display:grid;gap:2px}
+.lrow{display:grid;grid-template-columns:14px 1fr auto 42px;gap:8px;align-items:center;font-size:14px;padding:3px 0;font-variant-numeric:tabular-nums}
+.lrow .sub{text-align:right}
+.lrow:first-child{border-bottom:1px solid var(--line);padding-bottom:6px;margin-bottom:2px}
+.sw{width:12px;height:12px;border-radius:3px}
+.cols{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:end;margin-top:16px;border-top:1px solid var(--line);padding-top:10px}
+.col{border:0;background:none;padding:0;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-end;height:110px;gap:4px;min-width:0}
+.col .stk{display:flex;flex-direction:column-reverse;gap:2px;border-radius:4px 4px 0 0;overflow:hidden;min-height:0;border-bottom:1px solid var(--mute)}
+.col .stk i{display:block;min-height:2px}
+.col .ml{font-size:10px;color:var(--mute);text-align:center;white-space:nowrap;overflow:hidden}
+.col.dim .stk{opacity:.35}
+.col.on .ml{color:var(--ink);font-weight:700}
+.mdet{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;margin-top:10px;padding:8px 10px;background:var(--bg);border-radius:10px;font-variant-numeric:tabular-nums}
+.mdet>b{width:100%}
 /* PIN */
 .lock{position:fixed;inset:0;z-index:28;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
 .lockbox{width:100%;max-width:310px;text-align:center}
@@ -178,8 +202,8 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.5';
-const APP_DATE = '2026-11-20';
+const APP_VERSION = '1.6';
+const APP_DATE = '2026-11-21';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
 
@@ -305,7 +329,12 @@ const setRid = id => { S.rid = id; if (!REPORT) lsSet(K.rid, id); };
 const chargesOf = rid => Object.values(D().charges).filter(c => c.r === rid);
 const isIncome = c => c.kind === 'charge' || c.kind === 'extra';
 const paidAmt = c => c.paid ?? c.amount;
-const dueOf = c => { if (c.kind === 'extra') return c.d; const r = D().rentals[c.r]; return clampDay(c.m, (r && r.dueDay) || 10); };
+const dueOf = c => { if (c.kind === 'extra') return c.d; const r = D().rentals[c.r] || {}; return clampDay(r.advance ? shiftMonth(c.m, -1) : c.m, r.dueDay || 10); };
+// zaległe = termin minął przed początkiem bieżącego miesiąca
+const isOldUnpaid = c => c.kind === 'charge' && !c.paidOn && dueOf(c) < curMonth() + '-01';
+// ostatni miesiąc, za który są już należności: bieżący, a przy płatności z góry – także następny
+const genEnd = r => { const cm = curMonth(), last = r.advance ? shiftMonth(cm, 1) : cm; return r.to && r.to.slice(0, 7) < last ? r.to.slice(0, 7) : last; };
+const dueText = r => (r.advance ? 'płatne z góry, ' : 'płatne ') + ((r.dueDay || 10) >= 31 ? 'do końca ' : `do ${r.dueDay || 10}. dnia `) + (r.advance ? 'poprzedniego miesiąca' : 'miesiąca');
 const shownDate = c => c.kind === 'cost' ? c.d : (c.paidOn || (c.kind === 'extra' ? c.d : c.m + '-01'));
 const rentalEnded = r => r.to && r.to < todayStr();
 const rentalPeriod = r => `od ${longDay(r.from)}` + (r.to ? ` do ${longDay(r.to)}` : ' · na czas nieokreślony');
@@ -316,7 +345,7 @@ const monthlyTotal = r => sum(r.items || [], it => it.amount || 0);
 const genStart = r => { const fm = r.from.slice(0, 7); return r.genFrom && r.genFrom > fm ? r.genFrom : fm; };
 // należności usunięte ręcznie (nie odtwarzają się same) – tylko te, które dałoby się przywrócić
 function skippedOf(r) {
-  const s = genStart(r), cm = curMonth(), e = r.to && r.to.slice(0, 7) < cm ? r.to.slice(0, 7) : cm;
+  const s = genStart(r), e = genEnd(r);
   const items = new Map((r.items || []).filter(i => i.amount).map(i => [i.id, i]));
   return (r.skip || []).filter(k => { const [m, id] = k.split('|'); const it = items.get(id); return it && m >= s && m <= e && !(it.from && m < it.from); });
 }
@@ -334,7 +363,7 @@ function ensureCharges() {
   store.batch(() => {
     for (const r of Object.values(d.rentals)) {
       const start = genStart(r);
-      const end = r.to && r.to.slice(0, 7) < cm ? r.to.slice(0, 7) : cm;
+      const end = genEnd(r);
       const skip = new Set(r.skip || []);
       for (let m = start; m <= end; m = shiftMonth(m, 1)) for (const it of r.items || []) {
         if (!it.amount || (it.from && m < it.from)) continue;
@@ -367,11 +396,11 @@ function taxEntries(rid) {
   const out = [], cm = curMonth();
   for (const m of ms) {
     const rec = D().taxes[taxKey(rid, m)] || {};
-    const base = sum(taxPayments(rid, m), paidAmt), calc = taxOf(base);
+    const pays = taxPayments(rid, m), base = sum(pays, paidAmt), calc = taxOf(base);
     const paid = !!rec.paidOn;
     const amount = paid ? (rec.paidAmount ?? calc) : calc;
     if (!amount && !paid) continue;
-    out.push({rid, m, base, calc, amount, rec, paid, open:m >= cm, date:rec.paidOn || rec.payDate || taxDefault(m),
+    out.push({rid, m, base, calc, amount, rec, paid, n:pays.length, open:m >= cm, date:rec.paidOn || rec.payDate || taxDefault(m),
               late:!paid && todayStr() > taxDeadline(m), changed:paid && rec.paidAmount !== undefined && rec.paidAmount !== calc});
   }
   return out.sort((a, b) => b.m.localeCompare(a.m));
@@ -437,15 +466,11 @@ function rentalHtml(r) {
   const unpaid = ch.filter(c => isIncome(c) && !c.paidOn);
   const due = sum(unpaid, c => c.amount), over = unpaid.filter(c => today > dueOf(c)), overSum = sum(over, c => c.amount);
   const taxes = taxEntries(r.id), taxTodo = taxes.filter(t => !t.paid && !t.open);
-  const incY = sum(ch.filter(c => isIncome(c) && c.paidOn && c.paidOn.startsWith(y)), paidAmt);
-  const taxY = sum(taxes.filter(t => t.m.startsWith(y)), t => t.amount);
-  const costY = sum(ch.filter(c => c.kind === 'cost' && c.d.startsWith(y)), c => c.amount);
   const cls = over.length ? 'bad' : due ? '' : 'ok';
   let h = `<div class="card hero ${cls}"><div class="k">Najemca ma do zapłaty</div><div class="big">${zl(due)}</div>
     ${over.length ? `<span class="status">⚠️ po terminie: ${zl(overSum)}</span>` : due ? `<span class="sub">w terminie – najbliższy ${shortDay(unpaid.map(dueOf).sort()[0])}</span>` : `<span class="status">✓ Wszystko opłacone</span>`}
-    <div class="stats"><div>Wpłynęło ${y}<b class="pos">${zl(incY)}</b></div><div>Podatek<b>${zl(taxY)}</b></div><div>Koszty<b>${zl(costY)}</b></div><div>Zostaje<b>${zl(incY - taxY - costY)}</b></div></div>
     ${taxTodo.length ? `<div class="sub neg" style="margin-top:8px">🧾 Podatek do zapłaty: <b>${zl(sum(taxTodo, t => t.amount))}</b> · ${taxTodo.some(t => t.late) ? 'po terminie!' : 'termin ' + shortDay(taxTodo.map(t => taxDeadline(t.m)).sort()[0])}</div>` : ''}</div>`;
-  const oldUnpaid = unpaid.filter(c => c.kind === 'charge' && c.m < curMonth());
+  const oldUnpaid = unpaid.filter(isOldUnpaid);
   if (oldUnpaid.length > 1 && !S.readOnly) h += `<div class="banner warn">Nieopłacone z poprzednich miesięcy: ${oldUnpaid.length}. Wprowadzasz starszą umowę i najemca to zapłacił?<button data-act="payold">Oznacz jako wpłacone w terminie</button><span class="hint" style="color:inherit">Potem każdą datę zmienisz przyciskiem ✓ 📅.</span></div>`;
   if (!S.readOnly) {
     const fm = r.from.slice(0, 7), gs = genStart(r);
@@ -457,7 +482,7 @@ function rentalHtml(r) {
     <div class="crow"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">✏️ edytuj</span></div>
     ${r.desc ? `<span class="sub" style="color:var(--ink);margin-top:2px">${esc(r.desc)}</span>` : ''}
     ${r.tenant ? `<span class="sub">👤 ${esc(r.tenant)}</span>` : ''}
-    <span class="sub">📅 ${esc(rentalPeriod(r))} · płatne do ${r.dueDay || 10}. dnia</span>
+    <span class="sub">📅 ${esc(rentalPeriod(r))} · ${esc(dueText(r))}</span>
     <span class="sub">💵 ${(r.items || []).filter(i => i.amount).map(i => `${esc(i.name)} ${zl(i.amount)}${i.taxable ? '' : ' (bez podatku)'}`).join(' · ') || 'brak kwot'}${(r.items || []).filter(i => i.amount).length > 1 ? ` · razem <b>${zl(monthlyTotal(r))}</b>` : ''}</span></button>`;
   if (!ch.length && !taxes.length) return h + `<div class="empty">Brak wpisów. ${r.from > today ? `Pierwsze należności pojawią się ${longDay(r.from.slice(0, 7) + '-01')}.` : 'Uzupełnij kwoty w najmie (✏️ edytuj).'}</div>`;
   const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'pl');
@@ -479,6 +504,8 @@ function rentalHtml(r) {
     const tl = taxTodo.slice().sort((a, b) => a.m.localeCompare(b.m)).concat(taxOpen);
     h += `<h3>🧾 Podatek do zapłaty<span class="${taxTodo.length ? 'neg' : ''}">${taxTodo.length ? zl(sum(taxTodo, t => t.amount)) : ''}</span></h3><div class="card list">${tl.map(x => rowHtml({t:'tax', x})).join('')}</div>`;
   }
+  // zestawienie roku – wykres
+  h += yearChartHtml(r.id);
   // 3. Historia – co zostało zapłacone, od najnowszego
   const hist = [];
   for (const c of ch) if (c.kind === 'cost' || c.paidOn) hist.push({t:c.kind === 'cost' ? 'cost' : 'charge', d:shownDate(c), c});
@@ -495,6 +522,48 @@ function rentalHtml(r) {
   }
   return h;
 }
+/* zestawienie roku: wpłynęło = zysk + podatek + koszty; pasek roku + słupki miesięcy */
+function yearData(rid, y) {
+  const ch = chargesOf(rid), taxes = taxEntries(rid);
+  const M = Array.from({length:12}, (_, i) => ({m:y + '-' + pad(i + 1), inc:0, tax:0, cost:0}));
+  for (const c of ch) {
+    if (isIncome(c) && c.paidOn && c.paidOn.startsWith(y)) M[+c.paidOn.slice(5, 7) - 1].inc += paidAmt(c);
+    if (c.kind === 'cost' && c.d.startsWith(y)) M[+c.d.slice(5, 7) - 1].cost += c.amount;
+  }
+  for (const t of taxes) if (t.m.startsWith(y)) M[+t.m.slice(5, 7) - 1].tax += t.amount;
+  M.forEach(x => x.profit = x.inc - x.tax - x.cost);
+  const T = M.reduce((a, x) => ({inc:a.inc + x.inc, tax:a.tax + x.tax, cost:a.cost + x.cost}), {inc:0, tax:0, cost:0});
+  T.profit = T.inc - T.tax - T.cost;
+  return {M, T};
+}
+const SERIES = [['profit', 'Zysk', 'var(--c-zysk)'], ['tax', 'Podatek', 'var(--c-pod)'], ['cost', 'Koszty', 'var(--c-kos)']];
+function yearChartHtml(rid) {
+  const y = String(S.cy || new Date().getFullYear()), {M, T} = yearData(rid, y);
+  const pct = v => T.inc > 0 ? Math.round(v / T.inc * 100) + '%' : '';
+  const nav = `<span class="ynav"><button data-act="cyprev" aria-label="Poprzedni rok">‹</button><button data-act="cynext" aria-label="Następny rok">›</button></span>`;
+  let h = `<h3>📊 Zestawienie ${y}</h3><div class="card chart">
+    <div class="crow"><span><span class="k">Zysk (zostaje)</span><span class="bigz ${T.profit < 0 ? 'neg' : ''}">${zl(T.profit)}</span></span>${nav}</div>`;
+  if (!T.inc && !T.cost && !T.tax) return h + `<p class="sub">Brak wpłat i kosztów w ${y}.</p></div>`;
+  // pasek roku: 100% = wpłynęło (przy stracie: podatek + koszty)
+  const parts = SERIES.map(([k, l, col]) => [k, l, col, Math.max(0, T[k])]).filter(p => p[3] > 0), whole = sum(parts, p => p[3]);
+  h += `<div class="sbar" role="img" aria-label="${esc(parts.map(p => p[1] + ' ' + zl(p[3])).join(', '))}">${parts.map(p => `<i style="flex:${p[3] / whole};background:${p[2]}" title="${esc(p[1] + ': ' + zl(p[3]))}"></i>`).join('')}</div>
+    <div class="leg"><div class="lrow"><span></span><span>Wpłynęło</span><b>${zl(T.inc)}</b><span class="sub">100%</span></div>
+    ${SERIES.map(([k, l, col]) => `<div class="lrow"><span class="sw" style="background:${col}"></span><span>${l}</span><b class="${k === 'profit' && T.profit < 0 ? 'neg' : ''}">${k === 'profit' ? '' : '−'}${zl(T[k])}</b><span class="sub">${pct(Math.max(0, T[k]))}</span></div>`).join('')}</div>`;
+  if (T.profit < 0) h += `<p class="sub neg">Podatek i koszty są wyższe niż wpływy.</p>`;
+  // słupki miesięcy
+  const max = Math.max(1, ...M.map(x => Math.max(x.inc, x.tax + x.cost)));
+  const sel = S.cm && S.cm.startsWith(y) ? S.cm : null;
+  h += `<div class="cols">${M.map(x => {
+    const segs = SERIES.map(([k, l, col]) => [Math.max(0, x[k]), col]).filter(s => s[0] > 0);
+    const tip = `${cap(monthOnly(x.m))}: wpłynęło ${zl(x.inc)}, podatek ${zl(x.tax)}, koszty ${zl(x.cost)}, zysk ${zl(x.profit)}`;
+    return `<button class="col ${sel && sel !== x.m ? 'dim' : ''} ${sel === x.m ? 'on' : ''}" data-act="cmsel" data-m="${x.m}" title="${esc(tip)}" aria-label="${esc(tip)}"><span class="stk" style="height:${Math.round(84 * sum(segs, s => s[0]) / max)}px">${segs.map(s => `<i style="flex:${s[0]};background:${s[1]}"></i>`).join('')}</span><span class="ml">${monthOnly(x.m).slice(0, 3)}</span></button>`;
+  }).join('')}</div>`;
+  const sx = sel && M.find(x => x.m === sel);
+  h += sx ? `<div class="mdet"><b>${esc(cap(monthYear(sx.m)))}</b><span>Wpłynęło <b>${zl(sx.inc)}</b></span><span>Podatek <b>−${zl(sx.tax)}</b></span><span>Koszty <b>−${zl(sx.cost)}</b></span><span>Zysk <b class="${sx.profit < 0 ? 'neg' : ''}">${zl(sx.profit)}</b></span></div>`
+    : `<p class="sub center" style="margin:6px 0 0">Stuknij miesiąc, żeby zobaczyć szczegóły</p>`;
+  return h + `</div>`;
+}
+const payTax = c => Math.round(paidAmt(c) * taxRate() / 100);
 function rowHtml(e) {
   const today = todayStr();
   if (e.t === 'tax') {
@@ -503,7 +572,7 @@ function rowHtml(e) {
       : x.open ? `naliczany – ${monthOnly(x.m)} jeszcze trwa`
       : `${x.rec.payDate ? 'zaplanowany · ' : ''}termin ${shortDay(taxDeadline(x.m))}${x.late ? '<span class="tag">po terminie</span>' : ''}`;
     const btn = S.readOnly ? '' : x.paid ? `<span class="paybtn done">✓</span>` : x.open ? '' : `<button class="paybtn go" data-act="taxpaid" data-r="${esc(x.rid)}" data-m="${x.m}">✓ Zapłacone</button>`;
-    return `<div class="plrow"><button class="tx" data-act="tax" data-r="${esc(x.rid)}" data-m="${x.m}"><span class="emo">🧾</span><span class="cbody"><span class="crow"><span class="cname">Podatek za ${esc(monthYear(x.m))}</span><span class="amtv ${x.paid ? '' : 'neg'}">−${zl(x.amount)}</span></span><span class="sub">${rateLabel()} od ${zl(x.base)} · ${sub}</span></span></button>${btn}</div>`;
+    return `<div class="plrow"><button class="tx" data-act="tax" data-r="${esc(x.rid)}" data-m="${x.m}"><span class="emo">🧾</span><span class="cbody"><span class="crow"><span class="cname">Podatek za ${esc(monthYear(x.m))}</span><span class="amtv ${x.paid ? '' : 'neg'}">−${zl(x.amount)}</span></span><span class="sub">${rateLabel()} od ${zl(x.base)}${x.n > 1 ? ` (${x.n} wpłaty)` : ''} · ${sub}</span></span></button>${btn}</div>`;
   }
   const c = e.c;
   if (e.t === 'cost') return `<div class="plrow"><button class="tx" data-act="cost" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'cost')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name || 'Koszt')}</span><span class="amtv neg">−${zl(c.amount)}</span></span><span class="sub">koszt${c.note ? ' · ' + esc(c.note) : ''}</span></span></button></div>`;
@@ -512,6 +581,7 @@ function rowHtml(e) {
   if (!paid) sub += `${sub ? ' · ' : ''}termin ${shortDay(due)}` + (late ? '<span class="tag">po terminie</span>' : '');
   else if (c.paid !== undefined && c.paid !== c.amount) sub += `<span class="tag w">wpłacono ${zl(c.paid)} z ${zl(c.amount)}</span>`;
   if (!c.taxable) sub += '<span class="tag n">bez podatku</span>';
+  else if (paid) sub += ` · podatek ${rateLabel()}: ${zl(payTax(c))}`;
   const btn = S.readOnly ? '' : paid ? `<button class="paybtn" data-act="paid" data-id="${esc(c.id)}" aria-label="Zmień datę wpływu"><span class="pos">✓</span> 📅</button>` : `<button class="paybtn go" data-act="paid" data-id="${esc(c.id)}">💰 Wpłynęło</button>`;
   return `<div class="plrow ${paid ? '' : 'todo'}"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'charge')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv ${paid ? 'pos' : ''}">+${zl(paid ? paidAmt(c) : c.amount)}</span></span><span class="sub">${sub}</span></span></button>${btn}</div>`;
 }
@@ -578,13 +648,17 @@ function helpHtml() {
     <li>Jednorazową należność (np. dopłata za media, kaucja) dodasz zielonym przyciskiem <b>+</b>. Kaucji zwykle nie liczy się do podatku – odznacz to pole.</li>
     <li><b>Układ strony:</b> na górze „Najemca ma zapłacić” (nieopłacone, po miesiącach, od najstarszego) i „Podatek do zapłaty”, niżej „Historia” – wpłaty, zapłacone podatki i koszty od najnowszych.</li></ul></details>
   <details class="help"><summary>🧾 Podatek</summary>
-    <ul><li>Podatek to ${rateLabel()} (ryczałt) od wpłat, które wpłynęły w danym miesiącu. Liczy się po dacie wpłaty, nie po miesiącu, za który jest czynsz.</li>
+    <ul><li>Podatek to ${rateLabel()} (ryczałt) od wpłat, które wpłynęły w danym miesiącu. Liczy się po dacie wpłaty, nie po miesiącu, za który jest czynsz. Dwie wpłaty w sierpniu (np. za sierpień i z góry za wrzesień) = jeden podatek za sierpień od ich sumy; przy każdej wpłacie widać jej część podatku.</li>
     <li>Płacisz go w kolejnym miesiącu, najpóźniej do 20. (wpłata w lutym → podatek do 20 marca).</li>
     <li>Domyślna data zapłaty jest w Ustawieniach. Stuknij podatek, żeby ustawić własną datę albo oznaczyć zapłatę z inną datą.</li>
     <li>Podstawa i podatek są zaokrąglane do pełnych złotych: poniżej 50 gr w dół, od 50 gr w górę (np. 25,49 zł → 25 zł, 25,50 zł → 26 zł). Podatek za bieżący miesiąc rośnie z każdą wpłatą („naliczany”).</li>
     <li>W zakładce <b>Podatek</b> widzisz wszystkie najmy razem, miesiąc po miesiącu, i możesz jednym przyciskiem oznaczyć cały miesiąc jako zapłacony.</li>
     <li>Powyżej 100 000 zł przychodu w roku stawka od nadwyżki to 12,5% – wtedy zmień stawkę w Ustawieniach.</li>
     <li>Czy opłaty (media) liczyć do podatku, zależy od umowy – w razie wątpliwości zapytaj księgową.</li></ul></details>
+  <details class="help"><summary>📅 Płatność z góry</summary>
+    <p>Jeśli najemca płaci z góry (np. za wrzesień do końca sierpnia), w najmie (✏️ edytuj) wybierz „Kiedy najemca płaci: z góry – w poprzednim miesiącu” i dzień 31 (= do końca miesiąca). Należność za kolejny miesiąc pojawi się już na początku bieżącego, z terminem w bieżącym miesiącu, a wpłata trafi do podatku miesiąca, w którym wpłynęła.</p></details>
+  <details class="help"><summary>📊 Zestawienie roku</summary>
+    <p>Pod podatkami jest wykres roku: zysk (co zostaje), pasek pokazujący, jak wpłaty dzielą się na zysk, podatek i koszty, oraz słupki dla każdego miesiąca. Stuknij miesiąc, żeby zobaczyć jego kwoty; strzałkami ‹ › zmienisz rok.</p></details>
   <details class="help"><summary>🔧 Koszty</summary>
     <p>Koszty (naprawy, wyposażenie, ubezpieczenie, czynsz do wspólnoty) dodajesz przyciskiem <b>+</b>. Przy ryczałcie nie zmniejszają podatku – służą do policzenia, ile naprawdę zostaje z najmu („Zostaje” na górze).</p></details>
   <details class="help"><summary>💾 Kopia danych i Excel</summary>
@@ -662,7 +736,7 @@ function openRental(id) {
 function syncRd() {
   const d = S.rd; if (!d || !$('#rd-name')) return;
   d.name = $('#rd-name').value; d.desc = $('#rd-desc').value; d.tenant = $('#rd-tenant').value;
-  d.from = $('#rd-from').value; d.to = $('#rd-to').value; d.dueDay = $('#rd-due').value;
+  d.from = $('#rd-from').value; d.to = $('#rd-to').value; d.dueDay = $('#rd-due').value; d.advance = $('#rd-adv').value === '1';
   document.querySelectorAll('[data-it]').forEach(row => {
     const it = d.items[+row.dataset.it]; if (!it) return;
     it.name = row.querySelector('.itn').value; it.amountTxt = row.querySelector('.ita').value; it.taxable = row.querySelector('.itt').checked;
@@ -670,14 +744,16 @@ function syncRd() {
 }
 function renderRentalSheet() {
   const d = S.rd, ro = S.readOnly;
-  const unpaidOld = d.isNew ? [] : chargesOf(d.id).filter(c => c.kind === 'charge' && !c.paidOn && c.m < curMonth());
+  const unpaidOld = d.isNew ? [] : chargesOf(d.id).filter(isOldUnpaid);
   const am = it => it.amountTxt !== undefined ? it.amountTxt : toInput(it.amount);
   openSheet(head(d.isNew ? 'Nowy najem' : 'Najem') + `
     <label class="f">Nazwa</label><input id="rd-name" value="${esc(d.name)}" placeholder="np. Mieszkanie Mokotów">
     <label class="f">Czego dotyczy</label><input id="rd-desc" value="${esc(d.desc)}" placeholder="np. kawalerka ul. Lipowa 5/12 + piwnica">
     <label class="f">Najemca</label><input id="rd-tenant" value="${esc(d.tenant)}" placeholder="imię i nazwisko / firma">
     <div class="row2"><div><label class="f">Od</label><input type="date" id="rd-from" value="${esc(d.from)}"></div><div><label class="f">Do (puste = bezterminowo)</label><input type="date" id="rd-to" value="${esc(d.to || '')}"></div></div>
-    <label class="f">Płatne do dnia miesiąca</label><input type="number" id="rd-due" min="1" max="28" value="${esc(d.dueDay)}">
+    <label class="f">Kiedy najemca płaci</label><select id="rd-adv"><option value="0" ${d.advance ? '' : 'selected'}>w danym miesiącu (np. za wrzesień we wrześniu)</option><option value="1" ${d.advance ? 'selected' : ''}>z góry – w poprzednim miesiącu (za wrzesień w sierpniu)</option></select>
+    <label class="f">Do którego dnia (31 = do końca miesiąca)</label><input type="number" id="rd-due" min="1" max="31" value="${esc(d.dueDay)}">
+    <span class="hint">Przy płatności z góry należność za kolejny miesiąc pojawia się już na początku bieżącego.</span>
     <label class="f">Co miesiąc najemca płaci</label>
     ${d.items.map((it, i) => `<div class="itrow" data-it="${i}"><input class="itn" value="${esc(it.name)}" placeholder="np. Czynsz najmu"><input class="ita" inputmode="decimal" value="${esc(am(it))}" placeholder="0,00 zł"><button class="ib del" data-act="itdel" data-i="${i}" aria-label="Usuń pozycję">✕</button><label class="chk"><input type="checkbox" class="itt" ${it.taxable ? 'checked' : ''}> liczyć do podatku (${rateLabel()})</label></div>`).join('')}
     <button class="btn sec" data-act="itadd">+ Dodaj pozycję</button>
@@ -695,7 +771,7 @@ async function saveRental() {
   if (!isDate(d.from)) { toast('Wpisz datę początku najmu'); return; }
   if (d.to && !isDate(d.to)) d.to = '';
   if (d.to && d.to < d.from) { toast('Data końca jest przed datą początku'); return; }
-  d.dueDay = Math.min(28, Math.max(1, Number(d.dueDay) || 10));
+  d.dueDay = Math.min(31, Math.max(1, Number(d.dueDay) || 10)); d.advance = !!Number(d.advance);
   const items = [];
   for (const it of d.items) {
     const a = it.amountTxt !== undefined ? parseZl(it.amountTxt) : it.amount;
@@ -769,7 +845,7 @@ function openPayQuick(ids) {
   const one = list.length === 1 ? list[0] : null, paid = !!(one && one.paidOn), t = todayStr();
   const due = list.map(dueOf).sort().pop();
   const yest = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); })();
-  const def = paid ? one.paidOn : list.every(c => c.m < curMonth()) ? (due > t ? t : due) : t;
+  const def = paid ? one.paidOn : list.every(c => c.kind === 'charge' && dueOf(c) < curMonth() + '-01') ? (due > t ? t : due) : t;
   const what = one ? `${one.kind === 'charge' ? 'za ' + monthYear(one.m) + ' · ' : ''}należne ${zl(one.amount)}` : `${list.length} ${plural(list.length, 'pozycja', 'pozycje', 'pozycji')} · razem ${zl(sum(list, c => c.amount))}`;
   openSheet(head(one ? esc(one.name) : 'Wpłata') + `
     <p class="sub">${esc(what)}</p>
@@ -781,7 +857,7 @@ function openPayQuick(ids) {
     ${one ? `<button class="btn sec" data-act="charge" data-id="${esc(one.id)}">Więcej: kwota należna, podatek, usuń</button>` : ''}`, {ids});
 }
 function payOld(rid) {
-  const t = todayStr(), list = chargesOf(rid).filter(c => c.kind === 'charge' && !c.paidOn && c.m < curMonth());
+  const t = todayStr(), list = chargesOf(rid).filter(isOldUnpaid);
   store.batch(() => { for (const c of list) { const d = dueOf(c); store.saveCharge(Object.assign(clone(c), {paidOn:d > t ? t : d})); } });
   toast(`Oznaczono jako wpłacone w terminie (${list.length})`, () => store.batch(() => list.forEach(c => store.saveCharge(c))));
 }
@@ -839,8 +915,8 @@ function openTax(rid, m) {
   const pays = taxPayments(rid, m).sort((a, b) => a.paidOn.localeCompare(b.paidOn));
   openSheet(head('Podatek za ' + esc(monthYear(m))) + `
     <p class="sub">${esc(r.name)} · ryczałt ${rateLabel()} od wpłat z ${esc(monthYear(m))}</p>
-    <div class="card list" style="margin:8px 0">${pays.map(c => `<div class="kv"><span>${esc(shortDay(c.paidOn))} · ${esc(c.name)}${c.kind === 'charge' && c.m !== m ? ` <span class="sub" style="display:inline">(za ${esc(monthOnly(c.m))})</span>` : ''}</span><b>${zl(paidAmt(c))}</b></div>`).join('') || '<p class="sub">Brak wpłat liczonych do podatku.</p>'}
-      <div class="kv"><span>Podatek (${rateLabel()}, w pełnych zł)</span><b>${zl(x.calc)}</b></div></div>
+    <div class="card list" style="margin:8px 0">${pays.map(c => `<div class="kv"><span>${esc(shortDay(c.paidOn))} · ${esc(c.name)}${c.kind === 'charge' && c.m !== m ? ` <span class="sub" style="display:inline">(za ${esc(monthOnly(c.m))})</span>` : ''}</span><span style="text-align:right"><b>${zl(paidAmt(c))}</b><span class="sub">podatek ${zl(payTax(c))}</span></span></div>`).join('') || '<p class="sub">Brak wpłat liczonych do podatku.</p>'}
+      <div class="kv"><span>Razem podatek za ${esc(monthOnly(m))} (od sumy ${zl(x.base)}, w pełnych zł)</span><b>${zl(x.calc)}</b></div></div>
     ${x.changed ? `<div class="banner warn">Zapłacono ${zl(x.amount)}, a z obecnych wpłat wychodzi ${zl(x.calc)}. Sprawdź, czy trzeba dopłacić lub poprawić kwotę.</div>` : ''}
     <label class="f">Kiedy chcę zapłacić</label><input type="date" id="tx-plan" value="${esc(x.rec.payDate || taxDefault(m))}">
     <span class="hint" id="tx-hint">Termin: do ${esc(longDay(taxDeadline(m)))}</span>
@@ -1040,7 +1116,7 @@ document.addEventListener('touchend', e => {
 }, {passive:true});
 
 /* ---------- akcje ---------- */
-const RO_OK = ['close', 'tab', 'rprev', 'rnext', 'rpick', 'rset', 'yprev', 'ynext', 'ynow', 'theme', 'redit', 'charge', 'cost', 'tax'];
+const RO_OK = ['close', 'tab', 'rprev', 'rnext', 'rpick', 'rset', 'yprev', 'ynext', 'ynow', 'cyprev', 'cynext', 'cmsel', 'theme', 'redit', 'charge', 'cost', 'tax'];
 document.addEventListener('click', async e => {
   if (Date.now() - MS_T < 400) return;
   const el = e.target.closest('[data-act]'); if (!el || L.mode) return;
@@ -1056,6 +1132,8 @@ document.addEventListener('click', async e => {
     case 'yprev': S.year--; render(); break;
     case 'ynext': S.year++; render(); break;
     case 'ynow': S.year = new Date().getFullYear(); render(); break;
+    case 'cyprev': case 'cynext': S.cy = (S.cy || new Date().getFullYear()) + (a === 'cyprev' ? -1 : 1); S.cm = null; render(); break;
+    case 'cmsel': S.cm = S.cm === ds.m ? null : ds.m; render(); break;
     case 'theme': lsSet(K.theme, isDarkNow() ? 'light' : 'dark'); applyTheme(); render(); if (S.tab === 'ustawienia') renderMain(true); break;
     case 'updcheck': checkUpdate(); break;
     case 'update': doUpdate(); break;
@@ -1102,7 +1180,7 @@ document.addEventListener('click', async e => {
       break;
     }
     case 'rpayold': case 'payold': {
-      const rid = a === 'rpayold' ? S.rd.id : curR().id, n = chargesOf(rid).filter(c => c.kind === 'charge' && !c.paidOn && c.m < curMonth()).length;
+      const rid = a === 'rpayold' ? S.rd.id : curR().id, n = chargesOf(rid).filter(isOldUnpaid).length;
       if (!(await ask(`Oznaczyć ${n} ${plural(n, 'należność', 'należności', 'należności')} z poprzednich miesięcy jako wpłacone w dniu terminu?`, 'Oznacz', false))) return;
       closeSheet(); payOld(rid);
       break;

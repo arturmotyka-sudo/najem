@@ -1,7 +1,7 @@
 // Najem – działanie offline.
 // Przy każdej nowej wersji zmień numer poniżej (taki sam jak APP_VERSION w index.html i w version.json).
 // Usuwa tylko własne pamięci „najem-…”, bo pod tym samym adresem działa też Budżet domowy.
-const CACHE = 'najem-1.5';
+const CACHE = 'najem-1.6';
 const FILES = ['./', './index.html', './manifest.webmanifest', './house-192.png', './house-512.png', './house-maskable.png', './xlsx.full.min.js'];
 
 self.addEventListener('install', e => {
