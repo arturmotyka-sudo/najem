@@ -1,9 +1,9 @@
 {
-  "version": "1.8",
+  "version": "1.9",
   "date": "2026-11-21",
   "changes": [
-    "Podatek domyślnie tylko od czynszu: opłaty, jednorazowe należności i zatrzymana część kaucji są domyślnie bez podatku",
-    "Na karcie najmu przy każdej pozycji widać „z podatkiem” albo „bez podatku”",
-    "Gdy w najmie odznaczysz „liczyć do podatku” (np. przy Opłatach), aplikacja zaproponuje zmianę także we wpłatach już zapisanych – podatek za te miesiące się przeliczy"
+    "Notatka przy każdej należności i wpłacie (w okienku „Wpłynęło” i po stuknięciu pozycji) – widoczna na liście i w Excelu",
+    "Zmiana czynszu od wybranego miesiąca: wpisz nową kwotę w najmie, a przy zapisie wybierz, od kiedy obowiązuje. Zapisane wpłaty zostają bez zmian",
+    "Na karcie najmu zapowiedź podwyżki (np. „→ 3 200 zł od stycznia 2027”), w edycji najmu historia kwot"
   ]
 }

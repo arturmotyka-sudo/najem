@@ -145,6 +145,7 @@ details.help li{margin:4px 0}
 .col.on .ml{color:var(--ink);font-weight:700}
 .mdet{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;margin-top:10px;padding:8px 10px;background:var(--bg);border-radius:10px;font-variant-numeric:tabular-nums}
 .mdet>b{width:100%}
+.note{display:block;color:var(--ink);font-style:italic;margin-top:2px}
 /* PIN */
 .lock{position:fixed;inset:0;z-index:28;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
 .lockbox{width:100%;max-width:310px;text-align:center}
@@ -202,7 +203,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.8';
+const APP_VERSION = '1.9';
 const APP_DATE = '2026-11-21';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -342,7 +343,9 @@ const dueText = r => (r.advance ? 'płatne z góry, ' : 'płatne ') + ((r.dueDay
 const shownDate = c => c.kind === 'cost' ? c.d : (c.paidOn || (c.kind === 'extra' || c.kind === 'deposit' ? c.d : c.m + '-01'));
 const rentalEnded = r => r.to && r.to < todayStr();
 const rentalPeriod = r => `od ${longDay(r.from)}` + (r.to ? ` do ${longDay(r.to)}` : ' · na czas nieokreślony');
-const monthlyTotal = r => sum(r.items || [], it => it.amount || 0);
+// kwota pozycji w danym miesiącu: historia zmian czynszu (it.prices = [{from:'RRRR-MM', amount}]), inaczej it.amount
+const amountFor = (it, m) => { let a = it.amount || 0; for (const p of it.prices || []) if (p.from <= m) a = p.amount; return a; };
+const monthlyTotal = (r, m) => sum(r.items || [], it => amountFor(it, m || curMonth()));
 
 /* ---------- comiesięczne należności: tworzą się same 1. dnia miesiąca ---------- */
 // pierwszy miesiąc, od którego powstają należności (początek najmu albo późniejszy, jeśli tak wybrano)
@@ -370,10 +373,10 @@ function ensureCharges() {
       const end = genEnd(r);
       const skip = new Set(r.skip || []);
       for (let m = start; m <= end; m = shiftMonth(m, 1)) for (const it of r.items || []) {
-        if (!it.amount || (it.from && m < it.from)) continue;
+        if (!amountFor(it, m) || (it.from && m < it.from)) continue;
         const k = r.id + '|' + m + '|' + it.id;
         if (have.has(k) || skip.has(m + '|' + it.id)) continue;
-        store.saveCharge({id:uid(), kind:'charge', r:r.id, m, item:it.id, name:it.name, amount:it.amount, taxable:!!it.taxable, ts:Date.now()});
+        store.saveCharge({id:uid(), kind:'charge', r:r.id, m, item:it.id, name:it.name, amount:amountFor(it, m), taxable:!!it.taxable, ts:Date.now()});
         have.add(k); n++;
       }
     }
@@ -487,7 +490,9 @@ function rentalHtml(r) {
     ${r.desc ? `<span class="sub" style="color:var(--ink);margin-top:2px">${esc(r.desc)}</span>` : ''}
     ${r.tenant ? `<span class="sub">👤 ${esc(r.tenant)}</span>` : ''}
     <span class="sub">📅 ${esc(rentalPeriod(r))} · ${esc(dueText(r))}</span>
-    <span class="sub">💵 ${(r.items || []).filter(i => i.amount).map(i => `${esc(i.name)} ${zl(i.amount)} (${i.taxable ? 'z podatkiem' : 'bez podatku'})`).join(' · ') || 'brak kwot'}${(r.items || []).filter(i => i.amount).length > 1 ? ` · razem <b>${zl(monthlyTotal(r))}</b>` : ''}</span>
+    ${(() => { const cm = curMonth(), its = (r.items || []).filter(i => amountFor(i, cm) || i.amount);
+      const next = i => (i.prices || []).find(p => p.from > cm);
+      return `<span class="sub">💵 ${its.map(i => `${esc(i.name)} ${zl(amountFor(i, cm))} (${i.taxable ? 'z podatkiem' : 'bez podatku'})${next(i) ? ` → <b>${zl(next(i).amount)} od ${esc(monthYear(next(i).from))}</b>` : ''}`).join(' · ') || 'brak kwot'}${its.length > 1 ? ` · razem <b>${zl(monthlyTotal(r))}</b>` : ''}</span>`; })()}
     ${(() => { const dp = depositOf(r.id); return dp ? `<span class="sub">🔐 Kaucja ${zl(dp.amount)} · ${dp.retOn ? `rozliczona ${shortDay(dp.retOn)}` : dp.paidOn ? 'u Ciebie, do zwrotu' : 'do wpłaty'}</span>` : ''; })()}</button>`;
   if (!ch.length && !taxes.length) return h + `<div class="empty">Brak wpisów. ${r.from > today ? `Pierwsze należności pojawią się ${longDay(r.from.slice(0, 7) + '-01')}.` : 'Uzupełnij kwoty w najmie (✏️ edytuj).'}</div>`;
   const byName = (a, b) => (a.name || '').localeCompare(b.name || '', 'pl');
@@ -597,6 +602,7 @@ function rowHtml(e) {
   else if (!c.taxable) sub += '<span class="tag n">bez podatku</span>';
   else if (paid) sub += ` · podatek ${rateLabel()}: ${zl(payTax(c))}`;
   if (c.fromDep) sub += '<span class="tag n">z kaucji</span>';
+  if (c.note) sub += `<span class="note">📝 ${esc(c.note)}</span>`;
   const btn = S.readOnly ? '' : paid ? `<button class="paybtn" data-act="paid" data-id="${esc(c.id)}" aria-label="Zmień datę wpływu"><span class="pos">✓</span> 📅</button>` : `<button class="paybtn go" data-act="paid" data-id="${esc(c.id)}">💰 Wpłynęło</button>`;
   return `<div class="plrow ${paid ? '' : 'todo'}"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'charge')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv ${paid && !isDeposit(c) ? 'pos' : ''}">+${zl(paid ? paidAmt(c) : c.amount)}</span></span><span class="sub">${sub}</span></span></button>${btn}</div>`;
 }
@@ -650,7 +656,8 @@ function helpHtml() {
   <details class="help"><summary>🏠 Najmy</summary>
     <p>Każdy najem ma swoją stronę. Przełączasz je strzałkami ‹ › na górze, przeciągnięciem palca po karcie „Najemca ma do zapłaty” albo stukając w nazwę (lista wszystkich najmów).</p>
     <p>W najmie wpisujesz: nazwę, czego dotyczy (np. adres, miejsce postojowe), najemcę, okres (od – do; puste „do” = na czas nieokreślony), dzień płatności i pozycje płacone co miesiąc, np. <b>Czynsz najmu</b> i <b>Opłaty</b>. Przy każdej pozycji zaznaczasz, czy liczy się do podatku.</p>
-    <p>Zmiana kwoty działa od kolejnych należności; aplikacja zapyta, czy zmienić ją też w już utworzonych, jeszcze nieopłaconych.</p></details>
+    <p><b>Zmiana czynszu</b> (np. podwyżka): w edycji najmu wpisz nową kwotę. Przy zapisie wybierz, od którego miesiąca obowiązuje (bieżący, kolejny, za dwa miesiące albo „od początku najmu”, gdy poprawiasz pomyłkę). Wpłaty już zapisane zostają bez zmian, nieopłacone od wybranego miesiąca dostaną nową kwotę. Karta najmu pokaże zapowiedź, a edycja najmu – historię kwot.</p>
+    <p><b>Notatki:</b> przy każdej należności i wpłacie możesz dopisać notatkę (w okienku „Wpłynęło” albo po stuknięciu pozycji), np. „zapłacone w lipcu razem z sierpniem”. Notatka jest widoczna na liście i w Excelu.</p>
   <details class="help"><summary>💰 Należności i wpłaty</summary>
     <ul><li>1. dnia każdego miesiąca pojawiają się należności z najmu (przy dacie 1. dnia), z terminem płatności.</li>
     <li>Gdy pieniądze wpłyną, stuknij <b>💰 Wpłynęło</b>, wybierz datę wpływu (Dziś / Wczoraj / W terminie albo dowolną) i zapisz. Wpłata przejdzie do Historii pod ten dzień. Dla należności z minionych miesięcy domyślną datą jest termin płatności.</li>
@@ -778,6 +785,8 @@ function renderRentalSheet() {
     <span class="hint">Przy płatności z góry należność za kolejny miesiąc pojawia się już na początku bieżącego.</span>
     <label class="f">Co miesiąc najemca płaci</label>
     ${d.items.map((it, i) => `<div class="itrow" data-it="${i}"><input class="itn" value="${esc(it.name)}" placeholder="np. Czynsz najmu"><input class="ita" inputmode="decimal" value="${esc(am(it))}" placeholder="0,00 zł"><button class="ib del" data-act="itdel" data-i="${i}" aria-label="Usuń pozycję">✕</button><label class="chk"><input type="checkbox" class="itt" ${it.taxable ? 'checked' : ''}> liczyć do podatku (${rateLabel()})</label></div>`).join('')}
+    ${(() => { const hist = d.items.filter(it => (it.prices || []).length).map(it => `${esc(it.name)}: ${it.prices.map(p => (p.from === '0000-00' ? 'wcześniej' : 'od ' + esc(monthYear(p.from))) + ' ' + zl(p.amount)).join(', ')}`); return hist.length ? `<span class="hint">📈 Historia kwot – ${hist.join(' · ')}</span>` : ''; })()}
+    <span class="hint">Zmiana kwoty (np. podwyżka): wpisz nową kwotę – przy zapisie wybierzesz, od którego miesiąca obowiązuje. Wpłaty już zapisane się nie zmienią.</span>
     <button class="btn sec" data-act="itadd">+ Dodaj pozycję</button>
     ${(() => { const dp = !d.isNew && depositOf(d.id); const v = d.depTxt !== undefined ? d.depTxt : toInput(dp ? dp.amount : 0);
       return `<label class="f">🔐 Kaucja zwrotna (zł)</label><input id="rd-dep" inputmode="decimal" value="${esc(v)}" placeholder="0,00 – brak kaucji" ${dp && dp.paidOn ? 'disabled' : ''}>
@@ -810,6 +819,7 @@ async function saveRental() {
   const depAmt = d.depTxt !== undefined ? parseZl(d.depTxt) : null; delete d.depTxt;
   if (depAmt !== null && (isNaN(depAmt) || depAmt < 0)) { toast('Popraw kwotę kaucji'); return; }
   const old = D().rentals[d.id], isNew = !old; delete d.isNew;
+  const amtUpd = [];
   if (isNew) {
     d.ts = Date.now(); const fm = d.from.slice(0, 7);
     if (fm < cm) {
@@ -829,16 +839,33 @@ async function saveRental() {
     }
     const startM = d.genFrom || d.from.slice(0, 7);
     for (const it of d.items) if (!old.items.some(o => o.id === it.id) && cm > startM) it.from = cm;
-    // zmiany kwot / nazw w nieopłaconych należnościach
+    // zmiana kwoty (np. podwyżka czynszu) – od wybranego miesiąca; opłacone wpłaty zostają bez zmian
+    const amtCh = d.items.map(it => [it, old.items.find(x => x.id === it.id)]).filter(([it, o]) => o && o.amount && o.amount !== it.amount);
+
+    if (amtCh.length) {
+      const desc = amtCh.map(([it, o]) => `${it.name}: ${zl(o.amount)} → ${zl(it.amount)}`).join(', ');
+      const opts = [cm, shiftMonth(cm, 1), shiftMonth(cm, 2)];
+      const ch = await choose(`Od którego miesiąca nowa kwota? (${desc}) Wpłaty już zapisane zostaną bez zmian.`,
+        opts.map((m, i) => ({label:`Od ${monthYear(m)}${i === 0 ? ' (bieżący)' : ''}`, cls:i ? 'sec' : ''})).concat([{label:'Od początku najmu (poprawiam pomyłkę)', cls:'sec'}]));
+      if (ch < 0) return;
+      const from = ch < 3 ? opts[ch] : null;
+      for (const [it, o] of amtCh) {
+        if (from) { const hist = (o.prices && o.prices.length ? o.prices : [{from:'0000-00', amount:o.amount || 0}]).filter(p => p.from < from); it.prices = hist.concat([{from, amount:it.amount}]); }
+        else delete it.prices;
+        for (const c of chargesOf(d.id)) if (c.kind === 'charge' && c.item === it.id && !c.paidOn && (!from || c.m >= from) && c.amount !== it.amount) amtUpd.push([c, it.amount]);
+      }
+
+    }
+    // zmiany nazw / podatku w nieopłaconych należnościach
     const upd = [];
     for (const it of d.items) {
-      const o = old.items.find(x => x.id === it.id); if (!o || (o.amount === it.amount && o.name === it.name && !!o.taxable === !!it.taxable)) continue;
-      for (const c of chargesOf(d.id)) if (c.kind === 'charge' && c.item === it.id && !c.paidOn && (c.amount !== it.amount || c.name !== it.name || c.taxable !== !!it.taxable)) upd.push([c, it]);
+      const o = old.items.find(x => x.id === it.id); if (!o || (o.name === it.name && !!o.taxable === !!it.taxable)) continue;
+      for (const c of chargesOf(d.id)) if (c.kind === 'charge' && c.item === it.id && !c.paidOn && (c.name !== it.name || c.taxable !== !!it.taxable)) upd.push([c, it]);
     }
     if (upd.length) {
-      const ch = await choose(`Zmienić też w nieopłaconych należnościach (${upd.length})?`, [{label:'Tak, zmień też nieopłacone'}, {label:'Nie, tylko kolejne miesiące', cls:'sec'}]);
+      const ch = await choose(`Zmienić nazwę / podatek też w nieopłaconych należnościach (${upd.length})?`, [{label:'Tak, zmień też nieopłacone'}, {label:'Nie, tylko kolejne miesiące', cls:'sec'}]);
       if (ch < 0) return;
-      if (ch === 0) store.batch(() => { for (const [c, it] of upd) store.saveCharge(Object.assign(clone(c), {amount:it.amount, name:it.name, taxable:!!it.taxable})); });
+      if (ch === 0) store.batch(() => { for (const [c, it] of upd) store.saveCharge(Object.assign(clone(D().charges[c.id] || c), {name:it.name, taxable:!!it.taxable})); });
     }
     // zmiana „liczyć do podatku” – także we wpłatach już zapisanych (podatek się przeliczy)
     const taxUpd = [];
@@ -855,6 +882,7 @@ async function saveRental() {
   }
   if (!write(() => store.batch(() => {
     store.saveRental(d);
+    for (const [c, a] of amtUpd) store.saveCharge(Object.assign(clone(D().charges[c.id] || c), {amount:a}));
     // kaucja: dopóki nie wpłynęła, zmienia się razem z najmem
     const dp = depositOf(d.id);
     if (depAmt === null || (dp && dp.paidOn)) return;
@@ -881,6 +909,7 @@ function openCharge(id) {
     <div class="row2"><div><label class="f">Data wpłaty</label><input type="date" id="pa-date" value="${esc(c.paidOn || todayStr())}"></div>
     <div><label class="f">Kwota wpłacona</label><input id="pa-paid" inputmode="decimal" value="${esc(paid ? toInput(paidAmt(c)) : '')}" placeholder="${esc(toInput(c.amount) || '0,00')}"></div></div>
     <span class="hint">${paid ? `Wpłynęło ${esc(longDay(c.paidOn))}.` : 'Puste pole kwoty = wpłacona cała należność.'}</span>
+    <label class="f">📝 Notatka</label><input id="pa-note" value="${esc(c.note || '')}" placeholder="np. zapłacone w lipcu razem z lipcem proporcjonalnie">
     ${ro ? '' : paid
       ? `<button class="btn" data-act="pasave" data-id="${esc(id)}">Zapisz</button><button class="btn sec" data-act="paundo" data-id="${esc(id)}">↩️ Cofnij wpłatę (nieopłacone)</button>`
       : `<button class="btn" data-act="papay" data-id="${esc(id)}">💰 Wpłynęło</button><button class="btn sec" data-act="pasave" data-id="${esc(id)}">Zapisz bez wpłaty</button>`}
@@ -900,6 +929,7 @@ function openPayQuick(ids) {
     <p class="sub">${esc(what)}</p>
     <label class="f">Data wpływu</label><input type="date" id="pq-date" value="${esc(def)}" max="${t}">
     <div class="chips" style="margin-top:8px"><button class="chip" data-act="pqd" data-d="${t}">Dziś</button><button class="chip" data-act="pqd" data-d="${yest}">Wczoraj</button>${due <= t ? `<button class="chip" data-act="pqd" data-d="${due}">W terminie (${esc(shortDay(due))})</button>` : ''}</div>
+    ${one ? `<label class="f">📝 Notatka (opcjonalnie)</label><input id="pq-note" value="${esc(one.note || '')}" placeholder="np. przelew razem z innym miesiącem">` : ''}
     ${one ? `<label class="f">Kwota wpłacona</label><input id="pq-amt" inputmode="decimal" value="${esc(paid ? toInput(paidAmt(one)) : '')}" placeholder="${esc(toInput(one.amount))} (całość)">` : ''}
     <button class="btn" data-act="pqsave">💰 Zapisz wpłatę</button>
     ${paid ? `<button class="btn sec" data-act="paundo" data-id="${esc(one.id)}">↩️ Cofnij wpłatę (nieopłacone)</button>` : ''}
@@ -915,6 +945,7 @@ function readCharge(c, withPay) {
   if (!name) { toast('Wpisz nazwę'); return null; }
   if (isNaN(amt) || amt <= 0) { toast('Popraw kwotę należną'); return null; }
   const n = Object.assign(clone(c), {name, amount:amt, taxable:$('#pa-tax').checked});
+  const note = $('#pa-note') ? $('#pa-note').value.trim() : ''; if (note) n.note = note; else delete n.note;
   if (withPay) {
     const d = $('#pa-date').value, pt = $('#pa-paid').value.trim(), p = pt === '' ? amt : parseZl(pt);
     if (!isDate(d)) { toast('Wpisz datę wpłaty'); return null; }
@@ -1083,17 +1114,17 @@ async function exportXlsx() {
   try { await loadXlsx(); } catch (e) { toast('Nie udało się wczytać modułu Excel'); return; }
   const X = window.XLSX, all = Object.values(D().charges), rn = id => D().rentals[id]?.name || '(usunięty najem)';
   const byDate = (a, b) => a[0].localeCompare(b[0]);
-  const pays = all.filter(c => isIncome(c) && c.paidOn).map(c => [c.paidOn, rn(c.r), c.name, c.kind === 'charge' ? c.m : 'jednorazowo', paidAmt(c) / 100, c.taxable ? 'tak' : 'nie']).sort(byDate);
-  const open = all.filter(c => isIncome(c) && !c.paidOn).map(c => [dueOf(c), rn(c.r), c.name, c.kind === 'charge' ? c.m : 'jednorazowo', c.amount / 100]).sort(byDate);
+  const pays = all.filter(c => isIncome(c) && c.paidOn).map(c => [c.paidOn, rn(c.r), c.name, c.kind === 'charge' ? c.m : 'jednorazowo', paidAmt(c) / 100, c.taxable ? 'tak' : 'nie', c.note || '']).sort(byDate);
+  const open = all.filter(c => isIncome(c) && !c.paidOn).map(c => [dueOf(c), rn(c.r), c.name, c.kind === 'charge' ? c.m : 'jednorazowo', c.amount / 100, c.note || '']).sort(byDate);
   const costs = all.filter(c => c.kind === 'cost').map(c => [c.d, rn(c.r), c.name, c.amount / 100, c.note || '']).sort(byDate);
   const taxes = allTaxes().sort((a, b) => a.m.localeCompare(b.m) || a.rname.localeCompare(b.rname)).map(x => [x.m, x.rname, x.base / 100, x.amount / 100, taxDeadline(x.m), x.paid ? x.rec.paidOn : '', x.paid ? 'zapłacony' : x.open ? 'naliczany' : 'do zapłaty']);
   const money = (ws, cols) => { for (const k in ws) if (k[0] !== '!' && ws[k].t === 'n' && cols.includes(k.replace(/\d+/g, ''))) ws[k].z = '#,##0.00 "zł"'; return ws; };
   const sheet = (rows, cols, widths) => { const ws = money(X.utils.aoa_to_sheet(rows), cols); ws['!cols'] = widths.map(w => ({wch:w})); return ws; };
   const wb = X.utils.book_new();
-  X.utils.book_append_sheet(wb, sheet([['Data wpłaty', 'Najem', 'Pozycja', 'Za miesiąc', 'Kwota', 'Do podatku'], ...pays], ['E'], [12, 22, 20, 12, 13, 11]), 'Wpłaty');
+  X.utils.book_append_sheet(wb, sheet([['Data wpłaty', 'Najem', 'Pozycja', 'Za miesiąc', 'Kwota', 'Do podatku', 'Notatka'], ...pays], ['E'], [12, 22, 20, 12, 13, 11, 36]), 'Wpłaty');
   X.utils.book_append_sheet(wb, sheet([['Miesiąc wpłat', 'Najem', 'Przychód', 'Podatek', 'Termin', 'Zapłacono', 'Status'], ...taxes], ['C', 'D'], [13, 22, 13, 12, 12, 12, 12]), 'Podatek');
   X.utils.book_append_sheet(wb, sheet([['Data', 'Najem', 'Za co', 'Kwota', 'Notatka'], ...costs], ['D'], [12, 22, 24, 13, 30]), 'Koszty');
-  X.utils.book_append_sheet(wb, sheet([['Termin', 'Najem', 'Pozycja', 'Za miesiąc', 'Kwota'], ...open], ['E'], [12, 22, 20, 12, 13]), 'Nieopłacone');
+  X.utils.book_append_sheet(wb, sheet([['Termin', 'Najem', 'Pozycja', 'Za miesiąc', 'Kwota', 'Notatka'], ...open], ['E'], [12, 22, 20, 12, 13, 36]), 'Nieopłacone');
   const deps = all.filter(isDeposit).map(c => [rn(c.r), c.amount / 100, c.paidOn || '', c.retOn || '', c.retOn ? (c.ret || 0) / 100 : '', (c.ded || []).map(x => `${x.name} ${(x.amount / 100).toFixed(2).replace('.', ',')} zł`).join('; '), !c.paidOn ? 'do wpłaty' : c.retOn ? 'rozliczona' : 'u mnie']);
   if (deps.length) X.utils.book_append_sheet(wb, sheet([['Najem', 'Kaucja', 'Otrzymana', 'Zwrócona', 'Kwota zwrotu', 'Potrącenia', 'Status'], ...deps], ['B', 'E'], [22, 13, 12, 12, 13, 36, 12]), 'Kaucje');
   const out = X.write(wb, {bookType:'xlsx', type:'array'});
@@ -1333,7 +1364,8 @@ document.addEventListener('click', async e => {
       const at = $('#pq-amt') ? $('#pq-amt').value.trim() : '';
       const p = at === '' ? null : parseZl(at);
       if (p !== null && (isNaN(p) || p <= 0)) { toast('Popraw kwotę'); return; }
-      store.batch(() => { for (const c of list) { const n = clone(c); n.paidOn = d; if (p !== null && p !== c.amount) n.paid = p; else delete n.paid; store.saveCharge(n); } });
+      const note = $('#pq-note') ? $('#pq-note').value.trim() : null;
+      store.batch(() => { for (const c of list) { const n = clone(c); n.paidOn = d; if (p !== null && p !== c.amount) n.paid = p; else delete n.paid; if (note !== null) { if (note) n.note = note; else delete n.note; } store.saveCharge(n); } });
       closeSheet();
       toast(`Wpłata zapisana: ${zl(p ?? sum(list, c => c.amount))}, ${d === todayStr() ? 'dziś' : shortDay(d)}`, () => store.batch(() => list.forEach(c => store.saveCharge(c))));
       break;
