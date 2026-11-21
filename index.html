@@ -203,7 +203,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.9';
+const APP_VERSION = '1.11';
 const APP_DATE = '2026-11-21';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -388,7 +388,9 @@ function ensureCharges() {
 const taxRate = () => { const v = Number(D().settings.taxRate); return isFinite(v) && v > 0 ? v : 8.5; };
 const taxDay = () => Math.min(20, Math.max(1, Number(D().settings.taxDay) || 20));
 const taxDeadline = m => clampDay(shiftMonth(m, 1), 20);
-const taxDefault = m => clampDay(shiftMonth(m, 1), taxDay());
+// dzień zapłaty podatku: własny w najmie (r.taxDay), inaczej wspólny z Ustawień; zawsze najpóźniej 20.
+const taxDayFor = rid => { const v = Number((D().rentals[rid] || {}).taxDay); return v >= 1 && v <= 20 ? Math.round(v) : taxDay(); };
+const taxDefault = (m, rid) => clampDay(shiftMonth(m, 1), rid ? taxDayFor(rid) : taxDay());
 // Ordynacja podatkowa art. 63: podstawa i podatek zaokrąglane do pełnych złotych – końcówki poniżej 50 gr w dół, od 50 gr w górę.
 // Liczone w groszach: zł × stawka% = grosze (np. 319 zł × 8 = 2552 gr = 25,52 zł → 26 zł).
 const roundZl = gr => Math.floor((gr + 50) / 100 + 1e-9) * 100;
@@ -407,7 +409,7 @@ function taxEntries(rid) {
     const paid = !!rec.paidOn;
     const amount = paid ? (rec.paidAmount ?? calc) : calc;
     if (!amount && !paid) continue;
-    out.push({rid, m, base, calc, amount, rec, paid, n:pays.length, open:m >= cm, date:rec.paidOn || rec.payDate || taxDefault(m),
+    out.push({rid, m, base, calc, amount, rec, paid, n:pays.length, open:m >= cm, date:rec.paidOn || rec.payDate || taxDefault(m, rid),
               late:!paid && todayStr() > taxDeadline(m), changed:paid && rec.paidAmount !== undefined && rec.paidAmount !== calc});
   }
   return out.sort((a, b) => b.m.localeCompare(a.m));
@@ -490,6 +492,7 @@ function rentalHtml(r) {
     ${r.desc ? `<span class="sub" style="color:var(--ink);margin-top:2px">${esc(r.desc)}</span>` : ''}
     ${r.tenant ? `<span class="sub">👤 ${esc(r.tenant)}</span>` : ''}
     <span class="sub">📅 ${esc(rentalPeriod(r))} · ${esc(dueText(r))}</span>
+    <span class="sub">🧾 podatek płacę do ${taxDayFor(r.id)}. dnia następnego miesiąca${r.taxDay ? '' : ' (jak w Ustawieniach)'}</span>
     ${(() => { const cm = curMonth(), its = (r.items || []).filter(i => amountFor(i, cm) || i.amount);
       const next = i => (i.prices || []).find(p => p.from > cm);
       return `<span class="sub">💵 ${its.map(i => `${esc(i.name)} ${zl(amountFor(i, cm))} (${i.taxable ? 'z podatkiem' : 'bez podatku'})${next(i) ? ` → <b>${zl(next(i).amount)} od ${esc(monthYear(next(i).from))}</b>` : ''}`).join(' · ') || 'brak kwot'}${its.length > 1 ? ` · razem <b>${zl(monthlyTotal(r))}</b>` : ''}</span>`; })()}
@@ -621,7 +624,7 @@ function taxTabHtml() {
     const open = m >= curMonth(), late = todo.some(x => x.late);
     const status = !todo.length ? `<span class="pos">✓ zapłacony</span>` : open ? `naliczany – ${monthOnly(m)} trwa` : `<span class="neg">do zapłaty do ${shortDay(taxDeadline(m))}</span>${late ? '<span class="tag">po terminie</span>' : ''}`;
     h += `<h3>Za ${esc(monthYear(m))}<span>${zl(tot)}</span></h3><div class="card list">
-      ${list.map(x => `<div class="plrow"><button class="tx" data-act="tax" data-r="${esc(x.rid)}" data-m="${m}"><span class="emo">🏠</span><span class="cbody"><span class="crow"><span class="cname">${esc(x.rname)}</span><span class="amtv">${zl(x.amount)}</span></span><span class="sub">od ${zl(x.base)} · ${x.paid ? `zapłacono ${shortDay(x.rec.paidOn)}` : x.rec.payDate ? `planuję ${shortDay(x.rec.payDate)}` : `domyślnie ${shortDay(taxDefault(m))}`}${x.changed ? '<span class="tag w">wpłaty się zmieniły</span>' : ''}</span></span></button>${x.paid ? '<span class="paybtn done">✓</span>' : ''}</div>`).join('')}
+      ${list.map(x => `<div class="plrow"><button class="tx" data-act="tax" data-r="${esc(x.rid)}" data-m="${m}"><span class="emo">🏠</span><span class="cbody"><span class="crow"><span class="cname">${esc(x.rname)}</span><span class="amtv">${zl(x.amount)}</span></span><span class="sub">od ${zl(x.base)} · ${x.paid ? `zapłacono ${shortDay(x.rec.paidOn)}` : x.rec.payDate ? `planuję ${shortDay(x.rec.payDate)}` : `domyślnie ${shortDay(taxDefault(m, x.rid))}`}${x.changed ? '<span class="tag w">wpłaty się zmieniły</span>' : ''}</span></span></button>${x.paid ? '<span class="paybtn done">✓</span>' : ''}</div>`).join('')}
       <div class="kv"><span class="sub" style="font-size:13px">${status}</span>${todo.length && !open && !S.readOnly ? `<button class="paybtn go" data-act="taxpaidm" data-m="${m}">✓ Zapłacone</button>` : ''}</div></div>`;
   }
   return h;
@@ -635,8 +638,8 @@ function settingsHtml() {
   <button class="btn sec" data-act="addrental">+ Dodaj najem</button>
   <h3>Podatek</h3><div class="card">
     <div class="row2"><div><label class="f" style="margin-top:0">Stawka ryczałtu (%)</label><input id="set-rate" inputmode="decimal" value="${esc(String(st.taxRate).replace('.', ','))}"></div>
-    <div><label class="f" style="margin-top:0">Domyślny dzień zapłaty</label><input id="set-day" type="number" min="1" max="20" value="${esc(st.taxDay)}"></div></div>
-    <span class="hint">Podatek za dany miesiąc płacisz w kolejnym, najpóźniej do 20. Datę możesz też zmienić przy każdym podatku osobno.</span>
+    <div><label class="f" style="margin-top:0">Dzień zapłaty (domyślny)</label><input id="set-day" type="number" min="1" max="20" value="${esc(st.taxDay)}"></div></div>
+    <span class="hint">Podatek za dany miesiąc płacisz w kolejnym, najpóźniej do 20. Ten dzień obowiązuje w najmach bez własnego dnia – każdy najem może mieć swój (✏️ edytuj → „Dzień zapłaty podatku”), a datę zmienisz też przy każdym podatku osobno.</span>
     <button class="btn" data-act="setsave">Zapisz</button></div>
   <h3>PIN</h3><div class="card">`;
   if (!pinSupported()) h += `<p class="sub">PIN działa tylko po otwarciu aplikacji z adresu https.</p>`;
@@ -656,7 +659,7 @@ function helpHtml() {
   <details class="help"><summary>🏠 Najmy</summary>
     <p>Każdy najem ma swoją stronę. Przełączasz je strzałkami ‹ › na górze, przeciągnięciem palca po karcie „Najemca ma do zapłaty” albo stukając w nazwę (lista wszystkich najmów).</p>
     <p>W najmie wpisujesz: nazwę, czego dotyczy (np. adres, miejsce postojowe), najemcę, okres (od – do; puste „do” = na czas nieokreślony), dzień płatności i pozycje płacone co miesiąc, np. <b>Czynsz najmu</b> i <b>Opłaty</b>. Przy każdej pozycji zaznaczasz, czy liczy się do podatku.</p>
-    <p><b>Zmiana czynszu</b> (np. podwyżka): w edycji najmu wpisz nową kwotę. Przy zapisie wybierz, od którego miesiąca obowiązuje (bieżący, kolejny, za dwa miesiące albo „od początku najmu”, gdy poprawiasz pomyłkę). Wpłaty już zapisane zostają bez zmian, nieopłacone od wybranego miesiąca dostaną nową kwotę. Karta najmu pokaże zapowiedź, a edycja najmu – historię kwot.</p>
+    <p><b>Zmiana czynszu</b> (np. podwyżka): w edycji najmu wpisz nową kwotę. Przy zapisie wybierz z listy, od którego miesiąca obowiązuje – dowolny, od początku najmu do roku naprzód (także wstecz, gdy wpisujesz historię). Jeśli od tego miesiąca są już wpłaty zapisane ze starą kwotą, aplikacja zapyta, czy je poprawić; nieopłacone od wybranego miesiąca dostaną nową kwotę. Karta najmu pokaże zapowiedź, a edycja najmu – historię kwot.</p>
     <p><b>Notatki:</b> przy każdej należności i wpłacie możesz dopisać notatkę (w okienku „Wpłynęło” albo po stuknięciu pozycji), np. „zapłacone w lipcu razem z sierpniem”. Notatka jest widoczna na liście i w Excelu.</p>
   <details class="help"><summary>💰 Należności i wpłaty</summary>
     <ul><li>1. dnia każdego miesiąca pojawiają się należności z najmu (przy dacie 1. dnia), z terminem płatności.</li>
@@ -672,7 +675,7 @@ function helpHtml() {
   <details class="help"><summary>🧾 Podatek</summary>
     <ul><li>Podatek to ${rateLabel()} (ryczałt) od wpłat, które wpłynęły w danym miesiącu. Liczy się po dacie wpłaty, nie po miesiącu, za który jest czynsz. Dwie wpłaty w sierpniu (np. za sierpień i z góry za wrzesień) = jeden podatek za sierpień od ich sumy; przy każdej wpłacie widać jej część podatku.</li>
     <li>Płacisz go w kolejnym miesiącu, najpóźniej do 20. (wpłata w lutym → podatek do 20 marca).</li>
-    <li>Domyślna data zapłaty jest w Ustawieniach. Stuknij podatek, żeby ustawić własną datę albo oznaczyć zapłatę z inną datą.</li>
+    <li>Dzień zapłaty podatku ustawiasz w każdym najmie (✏️ edytuj → „Dzień zapłaty podatku”, 1–20). Puste pole = dzień z Ustawień. Datę możesz też zmienić przy pojedynczym podatku (stuknij go → „Kiedy chcę zapłacić”).</li>
     <li>Podstawa i podatek są zaokrąglane do pełnych złotych: poniżej 50 gr w dół, od 50 gr w górę (np. 25,49 zł → 25 zł, 25,50 zł → 26 zł). Podatek za bieżący miesiąc rośnie z każdą wpłatą („naliczany”).</li>
     <li>W zakładce <b>Podatek</b> widzisz wszystkie najmy razem, miesiąc po miesiącu, i możesz jednym przyciskiem oznaczyć cały miesiąc jako zapłacony.</li>
     <li>Powyżej 100 000 zł przychodu w roku stawka od nadwyżki to 12,5% – wtedy zmień stawkę w Ustawieniach.</li>
@@ -734,6 +737,18 @@ function choose(text, options) {
     d.onclick = e => { const b = e.target.closest('[data-r]'); if (!b && e.target !== d) return; d.classList.remove('open'); d.onclick = null; res(b ? Number(b.dataset.r) : -1); };
   });
 }
+/* wybór miesiąca z listy → 'RRRR-MM' albo undefined (Anuluj) */
+function askMonth(text, months, def, first) {
+  return new Promise(res => {
+    const d = $('#dlg'), cm = curMonth();
+    d.innerHTML = `<div class="dlg"><p>${esc(text)}</p>
+      <select id="askm" style="margin:8px 0">${months.map(m => `<option value="${m}" ${m === def ? 'selected' : ''}>${esc(cap(monthYear(m)))}${m === cm ? ' (bieżący)' : ''}${m === first ? ' – od początku najmu' : ''}</option>`).join('')}</select>
+      <span class="hint">Wpłaty już zapisane nie zmienią się bez pytania.</span>
+      <button class="btn" data-r="ok">Zapisz od tego miesiąca</button><button class="btn sec" data-r="-1">Anuluj</button></div>`;
+    d.classList.add('open');
+    d.onclick = e => { const b = e.target.closest('[data-r]'); if (!b && e.target !== d) return; const v = $('#askm').value; d.classList.remove('open'); d.onclick = null; res(b && b.dataset.r === 'ok' ? v : undefined); };
+  });
+}
 const ask = async (text, ok = 'Usuń', danger = true) => (await choose(text, [{label:ok, cls:danger ? 'danger' : ''}])) === 0;
 let toastT;
 function toast(msg, undo) {
@@ -764,7 +779,7 @@ function openRental(id) {
 function syncRd() {
   const d = S.rd; if (!d || !$('#rd-name')) return;
   d.name = $('#rd-name').value; d.desc = $('#rd-desc').value; d.tenant = $('#rd-tenant').value;
-  d.from = $('#rd-from').value; d.to = $('#rd-to').value; d.dueDay = $('#rd-due').value; d.advance = $('#rd-adv').value === '1';
+  d.from = $('#rd-from').value; d.to = $('#rd-to').value; d.dueDay = $('#rd-due').value; d.advance = $('#rd-adv').value === '1'; d.taxDay = $('#rd-taxday').value;
   if ($('#rd-dep') && !$('#rd-dep').disabled) d.depTxt = $('#rd-dep').value;
   document.querySelectorAll('[data-it]').forEach(row => {
     const it = d.items[+row.dataset.it]; if (!it) return;
@@ -782,6 +797,7 @@ function renderRentalSheet() {
     <div class="row2"><div><label class="f">Od</label><input type="date" id="rd-from" value="${esc(d.from)}"></div><div><label class="f">Do (puste = bezterminowo)</label><input type="date" id="rd-to" value="${esc(d.to || '')}"></div></div>
     <label class="f">Kiedy najemca płaci</label><select id="rd-adv"><option value="0" ${d.advance ? '' : 'selected'}>w danym miesiącu (np. za wrzesień we wrześniu)</option><option value="1" ${d.advance ? 'selected' : ''}>z góry – w poprzednim miesiącu (za wrzesień w sierpniu)</option></select>
     <label class="f">Do którego dnia (31 = do końca miesiąca)</label><input type="number" id="rd-due" min="1" max="31" value="${esc(d.dueDay)}">
+    <label class="f">🧾 Dzień zapłaty podatku (1–20 następnego miesiąca)</label><input type="number" id="rd-taxday" min="1" max="20" value="${esc(d.taxDay || '')}" placeholder="puste = jak w Ustawieniach (${taxDay()}.)">
     <span class="hint">Przy płatności z góry należność za kolejny miesiąc pojawia się już na początku bieżącego.</span>
     <label class="f">Co miesiąc najemca płaci</label>
     ${d.items.map((it, i) => `<div class="itrow" data-it="${i}"><input class="itn" value="${esc(it.name)}" placeholder="np. Czynsz najmu"><input class="ita" inputmode="decimal" value="${esc(am(it))}" placeholder="0,00 zł"><button class="ib del" data-act="itdel" data-i="${i}" aria-label="Usuń pozycję">✕</button><label class="chk"><input type="checkbox" class="itt" ${it.taxable ? 'checked' : ''}> liczyć do podatku (${rateLabel()})</label></div>`).join('')}
@@ -806,6 +822,7 @@ async function saveRental() {
   if (d.to && !isDate(d.to)) d.to = '';
   if (d.to && d.to < d.from) { toast('Data końca jest przed datą początku'); return; }
   d.dueDay = Math.min(31, Math.max(1, Number(d.dueDay) || 10)); d.advance = !!Number(d.advance);
+  if (String(d.taxDay ?? '').trim() === '') delete d.taxDay; else { const td = Number(d.taxDay); if (!(td >= 1 && td <= 20)) { toast('Dzień zapłaty podatku: od 1 do 20'); return; } d.taxDay = Math.round(td); }
   const items = [];
   for (const it of d.items) {
     const a = it.amountTxt !== undefined ? parseZl(it.amountTxt) : it.amount;
@@ -844,15 +861,26 @@ async function saveRental() {
 
     if (amtCh.length) {
       const desc = amtCh.map(([it, o]) => `${it.name}: ${zl(o.amount)} → ${zl(it.amount)}`).join(', ');
-      const opts = [cm, shiftMonth(cm, 1), shiftMonth(cm, 2)];
-      const ch = await choose(`Od którego miesiąca nowa kwota? (${desc}) Wpłaty już zapisane zostaną bez zmian.`,
-        opts.map((m, i) => ({label:`Od ${monthYear(m)}${i === 0 ? ' (bieżący)' : ''}`, cls:i ? 'sec' : ''})).concat([{label:'Od początku najmu (poprawiam pomyłkę)', cls:'sec'}]));
-      if (ch < 0) return;
-      const from = ch < 3 ? opts[ch] : null;
+      // dowolny miesiąc: od początku najmu do roku naprzód (także historyczne dane)
+      const first = d.from.slice(0, 7), months = [];
+      for (let m = first; m <= shiftMonth(cm, 12); m = shiftMonth(m, 1)) months.push(m);
+      const from = await askMonth(`Od którego miesiąca nowa kwota? (${desc})`, months, cm <= months[months.length - 1] ? cm : months[0], first);
+      if (from === undefined) return;
       for (const [it, o] of amtCh) {
-        if (from) { const hist = (o.prices && o.prices.length ? o.prices : [{from:'0000-00', amount:o.amount || 0}]).filter(p => p.from < from); it.prices = hist.concat([{from, amount:it.amount}]); }
+        if (from > first) { const hist = (o.prices && o.prices.length ? o.prices : [{from:'0000-00', amount:o.amount || 0}]).filter(p => p.from < from); it.prices = hist.concat([{from, amount:it.amount}]); }
         else delete it.prices;
-        for (const c of chargesOf(d.id)) if (c.kind === 'charge' && c.item === it.id && !c.paidOn && (!from || c.m >= from) && c.amount !== it.amount) amtUpd.push([c, it.amount]);
+      }
+      const ids = new Set(amtCh.map(([it]) => it.id));
+      const inRange = chargesOf(d.id).filter(c => c.kind === 'charge' && ids.has(c.item) && c.m >= from);
+      const newAmt = c => d.items.find(it => it.id === c.item).amount;
+      for (const c of inRange) if (!c.paidOn && c.amount !== newAmt(c)) amtUpd.push([c, newAmt(c)]);
+      // wpłaty od tego miesiąca zapisane ze starą kwotą (np. przy wpisywaniu historii)
+      const paidOld = inRange.filter(c => c.paidOn && c.amount !== newAmt(c));
+      if (paidOld.length) {
+        const ch = await choose(`Od ${monthYear(from)} jest ${paidOld.length} ${plural(paidOld.length, 'wpłata zapisana', 'wpłaty zapisane', 'wpłat zapisanych')} ze starą kwotą. Zmienić je też na nową kwotę? Podatek się przeliczy.`,
+          [{label:'Tak, popraw też zapisane wpłaty'}, {label:'Nie, zostaw wpłaty bez zmian', cls:'sec'}]);
+        if (ch < 0) return;
+        if (ch === 0) for (const c of paidOld) amtUpd.push([c, newAmt(c), true]);
       }
 
     }
@@ -1058,7 +1086,7 @@ function openTax(rid, m) {
     <div class="card list" style="margin:8px 0">${pays.map(c => `<div class="kv"><span>${esc(shortDay(c.paidOn))} · ${esc(c.name)}${c.kind === 'charge' && c.m !== m ? ` <span class="sub" style="display:inline">(za ${esc(monthOnly(c.m))})</span>` : ''}</span><span style="text-align:right"><b>${zl(paidAmt(c))}</b><span class="sub">podatek ${zl(payTax(c))}</span></span></div>`).join('') || '<p class="sub">Brak wpłat liczonych do podatku.</p>'}
       <div class="kv"><span>Razem podatek za ${esc(monthOnly(m))} (od sumy ${zl(x.base)}, w pełnych zł)</span><b>${zl(x.calc)}</b></div></div>
     ${x.changed ? `<div class="banner warn">Zapłacono ${zl(x.amount)}, a z obecnych wpłat wychodzi ${zl(x.calc)}. Sprawdź, czy trzeba dopłacić lub poprawić kwotę.</div>` : ''}
-    <label class="f">Kiedy chcę zapłacić</label><input type="date" id="tx-plan" value="${esc(x.rec.payDate || taxDefault(m))}">
+    <label class="f">Kiedy chcę zapłacić</label><input type="date" id="tx-plan" value="${esc(x.rec.payDate || taxDefault(m, rid))}">
     <span class="hint" id="tx-hint">Termin: do ${esc(longDay(taxDeadline(m)))}</span>
     ${x.open ? `<span class="hint">${esc(cap(monthOnly(m)))} jeszcze trwa – kwota może wzrosnąć z kolejnymi wpłatami.</span>` : ''}
     <div class="row2"><div><label class="f">Data zapłaty</label><input type="date" id="tx-paid" value="${esc(x.rec.paidOn || todayStr())}"></div>

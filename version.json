@@ -1,9 +1,8 @@
 {
-  "version": "1.9",
+  "version": "1.11",
   "date": "2026-11-21",
   "changes": [
-    "Notatka przy każdej należności i wpłacie (w okienku „Wpłynęło” i po stuknięciu pozycji) – widoczna na liście i w Excelu",
-    "Zmiana czynszu od wybranego miesiąca: wpisz nową kwotę w najmie, a przy zapisie wybierz, od kiedy obowiązuje. Zapisane wpłaty zostają bez zmian",
-    "Na karcie najmu zapowiedź podwyżki (np. „→ 3 200 zł od stycznia 2027”), w edycji najmu historia kwot"
+    "Zmiana czynszu od dowolnego miesiąca: przy zapisie wybierasz miesiąc z listy – od początku najmu do roku naprzód, także wstecz przy wpisywaniu historii",
+    "Jeśli od wybranego miesiąca są już wpłaty zapisane ze starą kwotą, aplikacja zapyta, czy je poprawić – podatek się przeliczy"
   ]
 }
