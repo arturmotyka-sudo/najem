@@ -122,9 +122,9 @@ details.help p,details.help ol,details.help ul{font-size:14px;margin:0 0 12px}
 details.help ol,details.help ul{padding-left:20px}
 details.help li{margin:4px 0}
 /* wykres zestawienia – kolory z palety sprawdzonej pod kątem daltonizmu (osobne odcienie dla ciemnego motywu) */
-:root{--c-zysk:#1baf7a;--c-pod:#eb6834;--c-kos:#2a78d6}
-@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--c-zysk:#199e70;--c-pod:#d95926;--c-kos:#3987e5}}
-:root[data-theme=dark]{--c-zysk:#199e70;--c-pod:#d95926;--c-kos:#3987e5}
+:root{--c-zysk:#1baf7a;--c-kau:#6250d6;--c-pod:#eb6834;--c-kos:#2a78d6}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--c-zysk:#199e70;--c-kau:#9085e9;--c-pod:#d95926;--c-kos:#3987e5}}
+:root[data-theme=dark]{--c-zysk:#199e70;--c-kau:#9085e9;--c-pod:#d95926;--c-kos:#3987e5}
 .chart .k{display:block;color:var(--mute);font-size:13px;font-weight:600}
 .bigz{display:block;font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
 .ynav{display:flex;gap:6px;align-self:flex-start}
@@ -146,6 +146,9 @@ details.help li{margin:4px 0}
 .mdet{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px;margin-top:10px;padding:8px 10px;background:var(--bg);border-radius:10px;font-variant-numeric:tabular-nums}
 .mdet>b{width:100%}
 .note{display:block;color:var(--ink);font-style:italic;margin-top:2px}
+.msep{display:flex;align-items:center;gap:10px;margin:22px 2px 2px;color:var(--acc);font-size:13px;font-weight:700;letter-spacing:.02em}
+.msep::before,.msep::after{content:'';flex:1;height:2px;background:var(--acc);opacity:.35;border-radius:1px}
+.msep::before{flex:0 0 14px}
 /* PIN */
 .lock{position:fixed;inset:0;z-index:28;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
 .lockbox{width:100%;max-width:310px;text-align:center}
@@ -203,7 +206,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.11';
+const APP_VERSION = '1.12';
 const APP_DATE = '2026-11-21';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -326,6 +329,10 @@ function write(fn, okMsg) { try { fn(); if (okMsg) toast(okMsg); return true; } 
 /* ---------- dane pomocnicze ---------- */
 const rentals = () => Object.values(D().rentals).sort((a, b) => (a.ts || 0) - (b.ts || 0));
 const curR = () => { const l = rentals(); return l.find(r => r.id === S.rid) || l[0] || null; };
+// strona „Wszystkie najmy” – za ostatnim najmem (gdy są co najmniej 2)
+const ALL = '__all';
+const showAll = () => S.rid === ALL && rentals().length > 1;
+const navList = () => { const l = rentals().map(r => r.id); if (l.length > 1) l.push(ALL); return l; };
 const setRid = id => { S.rid = id; if (!REPORT) lsSet(K.rid, id); };
 const chargesOf = rid => Object.values(D().charges).filter(c => c.r === rid);
 const isIncome = c => c.kind === 'charge' || c.kind === 'extra';
@@ -424,8 +431,8 @@ const themeBtn = () => `<button class="hbtn" data-act="theme" aria-label="${isDa
 function renderHeader() {
   const rl = rentals(); let html;
   if (S.tab === 'najem' && rl.length) {
-    const r = curR(), many = rl.length > 1;
-    html = `<div class="mnav">${many ? '<button data-act="rprev" aria-label="Poprzedni najem">‹</button>' : ''}<button class="lbl" data-act="rpick">${esc(r.name)} ▾</button>${many ? '<button data-act="rnext" aria-label="Następny najem">›</button>' : ''}</div>`;
+    const r = curR(), many = rl.length > 1, title = showAll() ? '📊 Wszystkie najmy' : r.name;
+    html = `<div class="mnav">${many ? '<button data-act="rprev" aria-label="Poprzedni najem">‹</button>' : ''}<button class="lbl" data-act="rpick">${esc(title)} ▾</button>${many ? '<button data-act="rnext" aria-label="Następny najem">›</button>' : ''}</div>`;
   } else if (S.tab === 'podatek') {
     html = `<div class="mnav"><button data-act="yprev" aria-label="Poprzedni rok">‹</button><button class="lbl" data-act="ynow">Podatek ${S.year}</button><button data-act="ynext" aria-label="Następny rok">›</button></div>`;
   } else html = `<div class="htitle">${S.tab === 'ustawienia' ? 'Ustawienia' : S.tab === 'pomoc' ? 'Pomoc' : 'Najem'}</div>`;
@@ -437,7 +444,7 @@ function renderChrome() {
   $('#tab-ust').classList.toggle('hidden', !!REPORT);
   $('#tab-help').classList.toggle('upd', !!(S.remote && !S.remote.error && verNewer(S.remote.version, APP_VERSION)));
   $('#tab-tax').classList.toggle('dot', taxTodoAll().length > 0);
-  $('#fab').hidden = !(S.tab === 'najem' && curR() && !S.readOnly);
+  $('#fab').hidden = !(S.tab === 'najem' && curR() && !showAll() && !S.readOnly);
 }
 function renderMain(force) {
   const main = $('#main'), ae = document.activeElement;
@@ -461,7 +468,7 @@ function mainHtml() {
   if (!rentals().length) return b + onboardHtml();
   b += backupBanner();
   if (S.tab === 'podatek') return b + taxTabHtml();
-  return b + rentalHtml(curR());
+  return b + (showAll() ? allHtml() : rentalHtml(curR()));
 }
 function onboardHtml() {
   return `<div class="card center" style="padding:28px 16px"><div style="font-size:46px">🏠</div><h2 style="margin:8px 0 4px">Witaj 👋</h2>
@@ -521,7 +528,7 @@ function rentalHtml(r) {
   const held = ch.filter(c => isDeposit(c) && c.paidOn && !c.retOn);
   if (held.length) h += `<h3>🔐 Kaucja u mnie<span>${zl(sum(held, paidAmt))}</span></h3><div class="card list">${held.map(c => `<div class="plrow"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">🔐</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv">${zl(paidAmt(c))}</span></span><span class="sub">otrzymana ${esc(shortDay(c.paidOn))} · do zwrotu po zakończeniu najmu, minus ewentualne szkody</span></span></button>${S.readOnly ? '' : `<button class="paybtn go" data-act="depset" data-id="${esc(c.id)}">Rozlicz i zwróć</button>`}</div>`).join('')}</div>`;
   // zestawienie roku – wykres
-  h += yearChartHtml(r.id);
+  h += yearChartHtml([r.id]);
   // 3. Historia – co zostało zapłacone, od najnowszego
   const hist = [];
   for (const c of ch) if (c.kind === 'cost' || c.paidOn) hist.push({t:c.kind === 'cost' ? 'cost' : 'charge', d:shownDate(c), c});
@@ -531,52 +538,83 @@ function rentalHtml(r) {
   hist.sort((a, b) => b.d.localeCompare(a.d) || ord(a) - ord(b) || (a.c && b.c ? byName(a.c, b.c) : 0));
   h += `<h3>📜 Historia<span>${hist.length ? 'od najnowszych' : ''}</span></h3>`;
   if (!hist.length) return h + `<div class="card"><span class="sub">Tu pojawią się wpłaty, zapłacone podatki i koszty.</span></div>`;
-  let i = 0;
+  let i = 0, lastM = '';
   while (i < hist.length) {
     const d = hist[i].d, grp = [];
     while (i < hist.length && hist[i].d === d) grp.push(hist[i++]);
+    // separator miesiąca: kreska z nazwą miesiąca i roku
+    if (d.slice(0, 7) !== lastM) { lastM = d.slice(0, 7); h += `<div class="msep"><span>${esc(cap(monthYear(lastM)))}</span></div>`; }
     h += `<div class="dhead"><span>${esc(dLabel(d))}${d === today ? ' · dziś' : ''}</span></div><div class="card list">${grp.map(rowHtml).join('')}</div>`;
   }
   return h;
 }
-/* zestawienie roku: wpłynęło = zysk + podatek + koszty; pasek roku + słupki miesięcy */
-function yearData(rid, y) {
-  const ch = chargesOf(rid), taxes = taxEntries(rid);
-  const M = Array.from({length:12}, (_, i) => ({m:y + '-' + pad(i + 1), inc:0, tax:0, cost:0}));
-  for (const c of ch) {
-    if (isIncome(c) && c.paidOn && c.paidOn.startsWith(y)) M[+c.paidOn.slice(5, 7) - 1].inc += paidAmt(c);
-    if (c.kind === 'cost' && c.d.startsWith(y)) M[+c.d.slice(5, 7) - 1].cost += c.amount;
+/* strona „Wszystkie najmy”: razem do zapłaty, podatek, kaucje i zestawienie roku */
+function allHtml() {
+  const rl = rentals(), today = todayStr(), y = String(S.cy || new Date().getFullYear());
+  const rows = rl.map(r => {
+    const ch = chargesOf(r.id), unpaid = ch.filter(isOwed), over = unpaid.filter(c => today > dueOf(c));
+    const tt = taxEntries(r.id).filter(t => !t.paid && !t.open), held = ch.filter(c => isDeposit(c) && c.paidOn && !c.retOn);
+    return {r, due:sum(unpaid, c => c.amount), over:sum(over, c => c.amount), tax:sum(tt, t => t.amount), taxLate:tt.some(t => t.late), held:sum(held, paidAmt), T:yearData([r.id], y).T};
+  });
+  const due = sum(rows, x => x.due), over = sum(rows, x => x.over), tax = sum(rows, x => x.tax), held = sum(rows, x => x.held);
+  let h = `<div class="card hero ${over ? 'bad' : due ? '' : 'ok'}"><div class="k">Najemcy mają do zapłaty (wszystkie najmy)</div><div class="big">${zl(due)}</div>
+    ${over ? `<span class="status">⚠️ po terminie: ${zl(over)}</span>` : due ? '<span class="sub">wszystko w terminie</span>' : '<span class="status">✓ Wszystko opłacone</span>'}
+    ${tax ? `<div class="sub neg" style="margin-top:8px">🧾 Podatek do zapłaty: <b>${zl(tax)}</b>${rows.some(x => x.taxLate) ? ' · po terminie!' : ''} <button class="chip" style="padding:3px 10px;font-size:12px;margin-left:6px" data-act="tab" data-tab="podatek">Zobacz</button></div>` : ''}
+    ${held ? `<div class="sub" style="margin-top:6px">🔐 Kaucje u mnie: <b>${zl(held)}</b> (do zwrotu)</div>` : ''}</div>`;
+  h += `<h3>🏠 Najmy<span>zysk ${y}</span></h3><div class="card list">${rows.map(x => `<button class="rrow" data-act="rset" data-id="${esc(x.r.id)}"><span class="emo">🏠</span><span class="cbody"><span class="cname">${esc(x.r.name)}${rentalEnded(x.r) ? '<span class="tag n">zakończony</span>' : ''}</span>
+    <span class="sub">${x.due ? `<span class="${x.over ? 'neg' : ''}">do zapłaty ${zl(x.due)}${x.over ? ' (po terminie)' : ''}</span>` : '<span class="pos">✓ opłacone</span>'}${x.tax ? ` · <span class="neg">podatek ${zl(x.tax)}</span>` : ''}${x.held ? ` · kaucja ${zl(x.held)}` : ''}</span></span>
+    <span class="amtv ${x.T.profit < 0 ? 'neg' : ''}">${zl(x.T.profit)}</span></button>`).join('')}</div>`;
+  h += yearChartHtml(rl.map(r => r.id), 'Wszystkie najmy');
+  return h;
+}
+/* zestawienie roku (jeden najem albo wszystkie): wpłynęło = zysk + kaucja do zwrotu + podatek + koszty */
+function yearData(rids, y) {
+  const M = Array.from({length:12}, (_, i) => ({m:y + '-' + pad(i + 1), inc:0, tax:0, cost:0, dep:0, depIn:0}));
+  const at = d => M[+d.slice(5, 7) - 1];
+  for (const rid of rids) {
+    for (const c of chargesOf(rid)) {
+      if (isIncome(c) && c.paidOn && c.paidOn.startsWith(y)) at(c.paidOn).inc += paidAmt(c);
+      if (c.kind === 'cost' && c.d.startsWith(y)) at(c.d).cost += c.amount;
+      // kaucja: wpływa w dniu wpłaty, wychodzi w dniu rozliczenia (zwrot + część zatrzymana, która staje się przychodem)
+      if (isDeposit(c) && c.paidOn) {
+        if (c.paidOn.startsWith(y)) { at(c.paidOn).dep += paidAmt(c); at(c.paidOn).depIn += paidAmt(c); }
+        if (c.retOn && c.retOn.startsWith(y)) at(c.retOn).dep -= paidAmt(c);
+      }
+    }
+    for (const t of taxEntries(rid)) if (t.m.startsWith(y)) at(t.m).tax += t.amount;
   }
-  for (const t of taxes) if (t.m.startsWith(y)) M[+t.m.slice(5, 7) - 1].tax += t.amount;
   M.forEach(x => x.profit = x.inc - x.tax - x.cost);
-  const T = M.reduce((a, x) => ({inc:a.inc + x.inc, tax:a.tax + x.tax, cost:a.cost + x.cost}), {inc:0, tax:0, cost:0});
+  const T = M.reduce((a, x) => ({inc:a.inc + x.inc, tax:a.tax + x.tax, cost:a.cost + x.cost, dep:a.dep + x.dep}), {inc:0, tax:0, cost:0, dep:0});
   T.profit = T.inc - T.tax - T.cost;
   return {M, T};
 }
-const SERIES = [['profit', 'Zysk', 'var(--c-zysk)'], ['tax', 'Podatek', 'var(--c-pod)'], ['cost', 'Koszty', 'var(--c-kos)']];
-function yearChartHtml(rid) {
-  const y = String(S.cy || new Date().getFullYear()), {M, T} = yearData(rid, y);
-  const pct = v => T.inc > 0 ? Math.round(v / T.inc * 100) + '%' : '';
+const SERIES = [['profit', 'Zysk', 'var(--c-zysk)'], ['dep', 'Kaucja do zwrotu', 'var(--c-kau)'], ['tax', 'Podatek', 'var(--c-pod)'], ['cost', 'Koszty', 'var(--c-kos)']];
+function yearChartHtml(rids, title) {
+  const y = String(S.cy || new Date().getFullYear()), {M, T} = yearData(rids, y);
+  const dep = Math.max(0, T.dep), inAll = T.inc + dep, keep = T.profit + dep;
+  const pct = v => inAll > 0 ? Math.round(v / inAll * 100) + '%' : '';
   const nav = `<span class="ynav"><button data-act="cyprev" aria-label="Poprzedni rok">‹</button><button data-act="cynext" aria-label="Następny rok">›</button></span>`;
-  let h = `<h3>📊 Zestawienie ${y}</h3><div class="card chart">
-    <div class="crow"><span><span class="k">Zysk (zostaje)</span><span class="bigz ${T.profit < 0 ? 'neg' : ''}">${zl(T.profit)}</span></span>${nav}</div>`;
-  if (!T.inc && !T.cost && !T.tax) return h + `<p class="sub">Brak wpłat i kosztów w ${y}.</p></div>`;
-  // pasek roku: 100% = wpłynęło (przy stracie: podatek + koszty)
-  const parts = SERIES.map(([k, l, col]) => [k, l, col, Math.max(0, T[k])]).filter(p => p[3] > 0), whole = sum(parts, p => p[3]);
+  let h = `<h3>📊 ${esc(title || 'Zestawienie')} ${y}</h3><div class="card chart">
+    <div class="crow"><span><span class="k">Zostaje u mnie</span><span class="bigz ${keep < 0 ? 'neg' : ''}">${zl(keep)}</span>${dep ? `<span class="sub">zysk ${zl(T.profit)} + kaucja do zwrotu ${zl(dep)}</span>` : ''}</span>${nav}</div>`;
+  if (!T.inc && !T.cost && !T.tax && !T.dep && !M.some(x => x.depIn)) return h + `<p class="sub">Brak wpłat i kosztów w ${y}.</p></div>`;
+  // pasek roku: 100% = wpłynęło razem z kaucją (przy stracie: podatek + koszty)
+  const val = k => k === 'dep' ? dep : Math.max(0, T[k]);
+  const parts = SERIES.map(([k, l, col]) => [k, l, col, val(k)]).filter(p => p[3] > 0), whole = sum(parts, p => p[3]);
   h += `<div class="sbar" role="img" aria-label="${esc(parts.map(p => p[1] + ' ' + zl(p[3])).join(', '))}">${parts.map(p => `<i style="flex:${p[3] / whole};background:${p[2]}" title="${esc(p[1] + ': ' + zl(p[3]))}"></i>`).join('')}</div>
-    <div class="leg"><div class="lrow"><span></span><span>Wpłynęło</span><b>${zl(T.inc)}</b><span class="sub">100%</span></div>
-    ${SERIES.map(([k, l, col]) => `<div class="lrow"><span class="sw" style="background:${col}"></span><span>${l}</span><b class="${k === 'profit' && T.profit < 0 ? 'neg' : ''}">${k === 'profit' ? '' : '−'}${zl(T[k])}</b><span class="sub">${pct(Math.max(0, T[k]))}</span></div>`).join('')}</div>`;
+    <div class="leg"><div class="lrow"><span></span><span>Wpłynęło${dep ? ' (z kaucją)' : ''}</span><b>${zl(inAll)}</b><span class="sub">100%</span></div>
+    ${SERIES.filter(([k]) => k !== 'dep' || dep).map(([k, l, col]) => `<div class="lrow"><span class="sw" style="background:${col}"></span><span>${l}</span><b class="${k === 'profit' && T.profit < 0 ? 'neg' : ''}">${k === 'tax' || k === 'cost' ? '−' : ''}${zl(k === 'dep' ? dep : T[k])}</b><span class="sub">${pct(val(k))}</span></div>`).join('')}</div>`;
   if (T.profit < 0) h += `<p class="sub neg">Podatek i koszty są wyższe niż wpływy.</p>`;
   // słupki miesięcy
-  const max = Math.max(1, ...M.map(x => Math.max(x.inc, x.tax + x.cost)));
+  const mval = (x, k) => k === 'dep' ? Math.max(0, x.dep) : Math.max(0, x[k]);
+  const max = Math.max(1, ...M.map(x => Math.max(x.inc + Math.max(0, x.dep), x.tax + x.cost)));
   const sel = S.cm && S.cm.startsWith(y) ? S.cm : null;
   h += `<div class="cols">${M.map(x => {
-    const segs = SERIES.map(([k, l, col]) => [Math.max(0, x[k]), col]).filter(s => s[0] > 0);
-    const tip = `${cap(monthOnly(x.m))}: wpłynęło ${zl(x.inc)}, podatek ${zl(x.tax)}, koszty ${zl(x.cost)}, zysk ${zl(x.profit)}`;
+    const segs = SERIES.map(([k, l, col]) => [mval(x, k), col]).filter(s => s[0] > 0);
+    const tip = `${cap(monthOnly(x.m))}: wpłynęło ${zl(x.inc)}${x.dep ? `, kaucja ${x.dep > 0 ? '+' : ''}${zl(x.dep)}` : ''}, podatek ${zl(x.tax)}, koszty ${zl(x.cost)}, zysk ${zl(x.profit)}`;
     return `<button class="col ${sel && sel !== x.m ? 'dim' : ''} ${sel === x.m ? 'on' : ''}" data-act="cmsel" data-m="${x.m}" title="${esc(tip)}" aria-label="${esc(tip)}"><span class="stk" style="height:${Math.round(84 * sum(segs, s => s[0]) / max)}px">${segs.map(s => `<i style="flex:${s[0]};background:${s[1]}"></i>`).join('')}</span><span class="ml">${monthOnly(x.m).slice(0, 3)}</span></button>`;
   }).join('')}</div>`;
   const sx = sel && M.find(x => x.m === sel);
-  h += sx ? `<div class="mdet"><b>${esc(cap(monthYear(sx.m)))}</b><span>Wpłynęło <b>${zl(sx.inc)}</b></span><span>Podatek <b>−${zl(sx.tax)}</b></span><span>Koszty <b>−${zl(sx.cost)}</b></span><span>Zysk <b class="${sx.profit < 0 ? 'neg' : ''}">${zl(sx.profit)}</b></span></div>`
+  h += sx ? `<div class="mdet"><b>${esc(cap(monthYear(sx.m)))}</b><span>Wpłynęło <b>${zl(sx.inc)}</b></span>${sx.dep ? `<span>Kaucja <b>${sx.dep > 0 ? '+' : ''}${zl(sx.dep)}</b></span>` : ''}<span>Podatek <b>−${zl(sx.tax)}</b></span><span>Koszty <b>−${zl(sx.cost)}</b></span><span>Zysk <b class="${sx.profit < 0 ? 'neg' : ''}">${zl(sx.profit)}</b></span></div>`
     : `<p class="sub center" style="margin:6px 0 0">Stuknij miesiąc, żeby zobaczyć szczegóły</p>`;
   return h + `</div>`;
 }
@@ -657,7 +695,7 @@ function settingsHtml() {
 function helpHtml() {
   return `<details class="help" open><summary>🔄 Aktualizacja ${S.remote && !S.remote.error ? (verNewer(S.remote.version, APP_VERSION) ? '<span class="ubadge new">nowa wersja</span>' : '<span class="ubadge ok">aktualna</span>') : '<span class="ubadge chk">sprawdzam</span>'}</summary>${updateHtml()}</details>
   <details class="help"><summary>🏠 Najmy</summary>
-    <p>Każdy najem ma swoją stronę. Przełączasz je strzałkami ‹ › na górze, przeciągnięciem palca po karcie „Najemca ma do zapłaty” albo stukając w nazwę (lista wszystkich najmów).</p>
+    <p>Każdy najem ma swoją stronę. Przełączasz je strzałkami ‹ › na górze, przeciągnięciem palca po karcie „Najemca ma do zapłaty” albo stukając w nazwę (lista wszystkich najmów). Za ostatnim najmem (przeciągnij dalej albo wybierz z listy) jest strona <b>📊 Wszystkie najmy</b>: razem do zapłaty, podatek, kaucje, zysk każdego najmu i wspólne zestawienie roku.</p>
     <p>W najmie wpisujesz: nazwę, czego dotyczy (np. adres, miejsce postojowe), najemcę, okres (od – do; puste „do” = na czas nieokreślony), dzień płatności i pozycje płacone co miesiąc, np. <b>Czynsz najmu</b> i <b>Opłaty</b>. Przy każdej pozycji zaznaczasz, czy liczy się do podatku.</p>
     <p><b>Zmiana czynszu</b> (np. podwyżka): w edycji najmu wpisz nową kwotę. Przy zapisie wybierz z listy, od którego miesiąca obowiązuje – dowolny, od początku najmu do roku naprzód (także wstecz, gdy wpisujesz historię). Jeśli od tego miesiąca są już wpłaty zapisane ze starą kwotą, aplikacja zapyta, czy je poprawić; nieopłacone od wybranego miesiąca dostaną nową kwotę. Karta najmu pokaże zapowiedź, a edycja najmu – historię kwot.</p>
     <p><b>Notatki:</b> przy każdej należności i wpłacie możesz dopisać notatkę (w okienku „Wpłynęło” albo po stuknięciu pozycji), np. „zapłacone w lipcu razem z sierpniem”. Notatka jest widoczna na liście i w Excelu.</p>
@@ -683,7 +721,7 @@ function helpHtml() {
   <details class="help"><summary>📅 Płatność z góry</summary>
     <p>Jeśli najemca płaci z góry (np. za wrzesień do końca sierpnia), w najmie (✏️ edytuj) wybierz „Kiedy najemca płaci: z góry – w poprzednim miesiącu” i dzień 31 (= do końca miesiąca). Należność za kolejny miesiąc pojawi się już na początku bieżącego, z terminem w bieżącym miesiącu, a wpłata trafi do podatku miesiąca, w którym wpłynęła.</p></details>
   <details class="help"><summary>📊 Zestawienie roku</summary>
-    <p>Pod podatkami jest wykres roku: zysk (co zostaje), pasek pokazujący, jak wpłaty dzielą się na zysk, podatek i koszty, oraz słupki dla każdego miesiąca. Stuknij miesiąc, żeby zobaczyć jego kwoty; strzałkami ‹ › zmienisz rok.</p></details>
+    <p>Pod podatkami jest wykres roku: „Zostaje u mnie” (zysk + kaucja do zwrotu, kaucja jako osobna pozycja), pasek pokazujący, jak wpłaty dzielą się na zysk, podatek i koszty, oraz słupki dla każdego miesiąca. Stuknij miesiąc, żeby zobaczyć jego kwoty; strzałkami ‹ › zmienisz rok.</p></details>
   <details class="help"><summary>🔐 Kaucja</summary>
     <ul><li>Kwotę kaucji wpisz w edycji najmu (✏️ edytuj → „Kaucja zwrotna”). Pojawi się w „Najemca ma zapłacić” z terminem w dniu początku najmu.</li>
     <li>Kaucja nie jest przychodem: nie liczy się do podatku, „Wpłynęło” ani zysku. Gdy wpłynie, jest w karcie <b>Kaucja u mnie</b>.</li>
@@ -764,8 +802,8 @@ function openPick() {
   const cur = curR();
   openSheet(head('Najmy') + `<div class="card list" style="margin-top:4px">${rentals().map(r => {
     const due = sum(chargesOf(r.id).filter(isOwed), c => c.amount);
-    return `<button class="rrow ${r.id === cur.id ? 'on' : ''}" data-act="rset" data-id="${esc(r.id)}"><span class="emo">🏠</span><span class="cbody"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">${esc(r.desc || r.tenant || rentalPeriod(r))}</span></span>${due ? `<span class="amtv neg">${zl(due)}</span>` : '<span class="pos">✓</span>'}</button>`;
-  }).join('')}</div>${S.readOnly ? '' : '<button class="btn sec" data-act="addrental">+ Nowy najem</button>'}`);
+    return `<button class="rrow ${r.id === cur.id && !showAll() ? 'on' : ''}" data-act="rset" data-id="${esc(r.id)}"><span class="emo">🏠</span><span class="cbody"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">${esc(r.desc || r.tenant || rentalPeriod(r))}</span></span>${due ? `<span class="amtv neg">${zl(due)}</span>` : '<span class="pos">✓</span>'}</button>`;
+  }).join('')}${rentals().length > 1 ? `<button class="rrow ${showAll() ? 'on' : ''}" data-act="rset" data-id="${ALL}"><span class="emo">📊</span><span class="cbody"><span class="cname">Wszystkie najmy</span><span class="sub">razem: do zapłaty, podatek, zysk</span></span></button>` : ''}</div>${S.readOnly ? '' : '<button class="btn sec" data-act="addrental">+ Nowy najem</button>'}`);
 }
 
 /* najem: dodawanie / edycja */
@@ -1268,9 +1306,9 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------- przełączanie najmów przeciągnięciem po karcie podsumowania ---------- */
 function stepRental(dir) {
-  const l = rentals(); if (l.length < 2) return;
-  const i = l.findIndex(r => r.id === curR().id);
-  setRid(l[(i + dir + l.length) % l.length].id); window.scrollTo(0, 0); render();
+  const l = navList(); if (l.length < 2) return;
+  const i = Math.max(0, l.indexOf(showAll() ? ALL : curR().id));
+  setRid(l[(i + dir + l.length) % l.length]); window.scrollTo(0, 0); render();
   const m = $('#main'); m.classList.remove('mslide-l', 'mslide-r'); void m.offsetWidth; m.classList.add(dir > 0 ? 'mslide-l' : 'mslide-r');
 }
 let MS = null, MS_T = 0;

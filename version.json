@@ -1,8 +1,9 @@
 {
-  "version": "1.11",
+  "version": "1.12",
   "date": "2026-11-21",
   "changes": [
-    "Zmiana czynszu od dowolnego miesiąca: przy zapisie wybierasz miesiąc z listy – od początku najmu do roku naprzód, także wstecz przy wpisywaniu historii",
-    "Jeśli od wybranego miesiąca są już wpłaty zapisane ze starą kwotą, aplikacja zapyta, czy je poprawić – podatek się przeliczy"
+    "Historia podzielona na miesiące: kreska z nazwą miesiąca i roku",
+    "Kaucja w zestawieniu jako osobna pozycja „Kaucja do zwrotu” – na górze „Zostaje u mnie” = zysk + kaucja",
+    "Nowa strona „📊 Wszystkie najmy”: przeciągnij palcem za ostatni najem (albo wybierz z listy najmów) – razem do zapłaty, podatek, kaucje, zysk każdego najmu i wspólne zestawienie roku"
   ]
 }
