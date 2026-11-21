@@ -1,9 +1,9 @@
 {
-  "version": "1.13",
+  "version": "1.14",
   "date": "2026-11-21",
   "changes": [
-    "Opłaty przekazywane dalej (np. do spółdzielni) nie liczą się już do zysku: przy pozycji w najmie jest pole „przekazuję dalej”",
-    "Istniejące pozycje bez podatku typu Opłaty, Prąd, Woda, Gaz zostały oznaczone automatycznie – sprawdź na karcie najmu",
-    "Najemca nadal ma je do zapłaty; w zestawieniu są pokazane osobno jako „Opłaty przekazane dalej”"
+    "Zmiana ikon jak w Budżecie: ikona najmu i każdej pozycji (Czynsz, Opłaty, Prąd…) – w edycji najmu, przycisk z ikoną obok nazwy",
+    "Ikonę pojedynczego wpisu (np. kosztu) zmienisz w okienku po stuknięciu wpisu",
+    "„Automatycznie” przywraca ikonę dobraną według nazwy"
   ]
 }

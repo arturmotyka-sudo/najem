@@ -57,7 +57,7 @@ nav.tabs button.upd::after,nav.tabs button.dot::after{content:'';position:absolu
 @keyframes up{from{transform:translateY(40px);opacity:.4}}
 .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:4px auto 10px}
 .shead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
-.shead h2{font-size:18px;margin:0}
+.shead h2{font-size:18px;margin:0;display:flex;align-items:center;min-width:0}
 .x{border:0;background:var(--bg);width:34px;height:34px;border-radius:50%;font-size:15px;flex:none}
 label.f{display:block;font-size:12px;color:var(--mute);margin:14px 0 6px}
 input,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 12px;width:100%;min-width:0}
@@ -90,10 +90,14 @@ input.amt{font-size:30px;font-weight:700;text-align:center;padding:12px;font-var
 .tag.g{background:var(--acc2);color:var(--ok)}.tag.n{background:var(--bg);color:var(--mute)}.tag.w{background:var(--warnbg);color:var(--warn)}
 .chk{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px}
 .chk input{width:20px;height:20px;flex:none}
-.itrow{display:grid;grid-template-columns:1fr 112px 42px;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
-.itrow .chk{grid-column:1/4;padding:0;font-size:13px;color:var(--mute)}
+.itrow{display:grid;grid-template-columns:46px 1fr 100px 42px;gap:6px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.itrow .chk{grid-column:1/5;padding:0;font-size:13px;color:var(--mute)}
 .ib{border:1px solid var(--line);background:var(--bg);border-radius:10px;height:44px;font-size:15px}
 .ib.del{color:var(--bad)}
+.ib.emobtn{font-size:22px;width:46px;flex:none;padding:0}
+.epick{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:6px}
+.epick button{font-size:24px;height:48px;border:1px solid var(--line);background:var(--bg);border-radius:12px}
+.epick button.on{border-color:var(--acc);background:var(--acc2)}
 .rrow{display:flex;align-items:center;gap:12px;padding:12px 0;border:0;border-bottom:1px solid var(--line);width:100%;background:none;text-align:left}
 .rrow:last-child{border-bottom:0}
 .rrow.on .cname{color:var(--acc)}
@@ -206,7 +210,7 @@ body.locked header,body.locked main,body.locked nav,body.locked #fab{visibility:
 const PRISTINE = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
 const REPORT_TAG = '<script id="report-data" type="application/json"></' + 'script>';
 
-const APP_VERSION = '1.13';
+const APP_VERSION = '1.14';
 const APP_DATE = '2026-11-21';
 /* Klucze pamięci – z przedrostkiem „najem-”, bo Budżet domowy działa pod tym samym adresem (github.io) i ma wspólną pamięć. */
 const K = {data:'najem-v1', pin:'najem-pin', pinOff:'najem-pin-off', theme:'najem-theme', exp:'najem-lastExport', rid:'najem-rid'};
@@ -260,6 +264,15 @@ const ICONS = [
   ['🏠', ['czynsz', 'najem', 'wynajem', 'mieszkan']]
 ];
 const iconFor = (name, kind) => { const n = normName(name); for (const [ic, keys] of ICONS) for (const k of keys) if (n.includes(' ' + k)) return ic; return kind === 'cost' ? '🔧' : '💵'; };
+// ikony wybierane ręcznie: najem (r.icon), pozycja najmu (it.icon), pojedynczy wpis (c.icon); inaczej dobierane z nazwy
+const rIcon = r => (r && r.icon) || '🏠';
+const iconOf = c => { if (c.icon) return c.icon; if (c.kind === 'charge') { const it = ((D().rentals[c.r] || {}).items || []).find(i => i.id === c.item); if (it && it.icon) return it.icon; } return iconFor(c.name, c.kind === 'cost' ? 'cost' : 'charge'); };
+const ICON_PICK = [
+  ['Najem', ['🏠', '🏢', '🏡', '🏘️', '🏬', '🏪', '🏨', '🅿️', '🚗', '🛏️', '🔑', '🔐']],
+  ['Opłaty i media', ['💡', '⚡', '💧', '🔥', '🌡️', '🗑️', '🌐', '📺', '📞', '🧾', '💵', '💳']],
+  ['Koszty i naprawy', ['🛠️', '🔧', '🔨', '🧹', '🧽', '🛋️', '🪑', '🚿', '🛁', '🚽', '🧯', '🪟']],
+  ['Inne', ['🛡️', '🏛️', '🏦', '📄', '📝', '📦', '🎁', '⚖️', '📈', '⭐', '❗', '❓']]
+];
 
 /* ---------- motyw ---------- */
 const themePref = () => { const p = lsGet(K.theme); return ['light', 'dark'].includes(p) ? p : 'auto'; };
@@ -569,7 +582,7 @@ function allHtml() {
     ${over ? `<span class="status">⚠️ po terminie: ${zl(over)}</span>` : due ? '<span class="sub">wszystko w terminie</span>' : '<span class="status">✓ Wszystko opłacone</span>'}
     ${tax ? `<div class="sub neg" style="margin-top:8px">🧾 Podatek do zapłaty: <b>${zl(tax)}</b>${rows.some(x => x.taxLate) ? ' · po terminie!' : ''} <button class="chip" style="padding:3px 10px;font-size:12px;margin-left:6px" data-act="tab" data-tab="podatek">Zobacz</button></div>` : ''}
     ${held ? `<div class="sub" style="margin-top:6px">🔐 Kaucje u mnie: <b>${zl(held)}</b> (do zwrotu)</div>` : ''}</div>`;
-  h += `<h3>🏠 Najmy<span>zysk ${y}</span></h3><div class="card list">${rows.map(x => `<button class="rrow" data-act="rset" data-id="${esc(x.r.id)}"><span class="emo">🏠</span><span class="cbody"><span class="cname">${esc(x.r.name)}${rentalEnded(x.r) ? '<span class="tag n">zakończony</span>' : ''}</span>
+  h += `<h3>🏠 Najmy<span>zysk ${y}</span></h3><div class="card list">${rows.map(x => `<button class="rrow" data-act="rset" data-id="${esc(x.r.id)}"><span class="emo">${rIcon(x.r)}</span><span class="cbody"><span class="cname">${esc(x.r.name)}${rentalEnded(x.r) ? '<span class="tag n">zakończony</span>' : ''}</span>
     <span class="sub">${x.due ? `<span class="${x.over ? 'neg' : ''}">do zapłaty ${zl(x.due)}${x.over ? ' (po terminie)' : ''}</span>` : '<span class="pos">✓ opłacone</span>'}${x.tax ? ` · <span class="neg">podatek ${zl(x.tax)}</span>` : ''}${x.held ? ` · kaucja ${zl(x.held)}` : ''}</span></span>
     <span class="amtv ${x.T.profit < 0 ? 'neg' : ''}">${zl(x.T.profit)}</span></button>`).join('')}</div>`;
   h += yearChartHtml(rl.map(r => r.id), 'Wszystkie najmy');
@@ -640,7 +653,7 @@ function rowHtml(e) {
     return `<div class="plrow"><button class="tx" data-act="tax" data-r="${esc(x.rid)}" data-m="${x.m}"><span class="emo">🧾</span><span class="cbody"><span class="crow"><span class="cname">Podatek za ${esc(monthYear(x.m))}</span><span class="amtv ${x.paid ? '' : 'neg'}">−${zl(x.amount)}</span></span><span class="sub">${rateLabel()} od ${zl(x.base)}${x.n > 1 ? ` (${x.n} wpłaty)` : ''} · ${sub}</span></span></button>${btn}</div>`;
   }
   const c = e.c;
-  if (e.t === 'cost') return `<div class="plrow"><button class="tx" data-act="cost" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'cost')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name || 'Koszt')}</span><span class="amtv neg">−${zl(c.amount)}</span></span><span class="sub">koszt${c.note ? ' · ' + esc(c.note) : ''}</span></span></button></div>`;
+  if (e.t === 'cost') return `<div class="plrow"><button class="tx" data-act="cost" data-id="${esc(c.id)}"><span class="emo">${iconOf(c)}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name || 'Koszt')}</span><span class="amtv neg">−${zl(c.amount)}</span></span><span class="sub">koszt${c.note ? ' · ' + esc(c.note) : ''}</span></span></button></div>`;
   if (e.t === 'depret') {
     const ded = c.ded || [];
     return `<div class="plrow"><button class="tx" data-act="depset" data-id="${esc(c.id)}"><span class="emo">↩️</span><span class="cbody"><span class="crow"><span class="cname">Zwrot kaucji</span><span class="amtv">−${zl(c.ret || 0)}</span></span><span class="sub">z ${zl(paidAmt(c))}${ded.length ? ' · potrącono: ' + ded.map(x => `${esc(x.name)} ${zl(x.amount)}`).join(', ') : ' · bez potrąceń'}</span></span></button></div>`;
@@ -656,7 +669,7 @@ function rowHtml(e) {
   if (c.pass) sub += '<span class="tag n">↪ przekazuję dalej</span>';
   if (c.note) sub += `<span class="note">📝 ${esc(c.note)}</span>`;
   const btn = S.readOnly ? '' : paid ? `<button class="paybtn" data-act="paid" data-id="${esc(c.id)}" aria-label="Zmień datę wpływu"><span class="pos">✓</span> 📅</button>` : `<button class="paybtn go" data-act="paid" data-id="${esc(c.id)}">💰 Wpłynęło</button>`;
-  return `<div class="plrow ${paid ? '' : 'todo'}"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">${iconFor(c.name, 'charge')}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv ${paid && !isDeposit(c) ? 'pos' : ''}">+${zl(paid ? paidAmt(c) : c.amount)}</span></span><span class="sub">${sub}</span></span></button>${btn}</div>`;
+  return `<div class="plrow ${paid ? '' : 'todo'}"><button class="tx" data-act="charge" data-id="${esc(c.id)}"><span class="emo">${iconOf(c)}</span><span class="cbody"><span class="crow"><span class="cname">${esc(c.name)}</span><span class="amtv ${paid && !isDeposit(c) ? 'pos' : ''}">+${zl(paid ? paidAmt(c) : c.amount)}</span></span><span class="sub">${sub}</span></span></button>${btn}</div>`;
 }
 
 /* zakładka Podatek */
@@ -673,7 +686,7 @@ function taxTabHtml() {
     const open = m >= curMonth(), late = todo.some(x => x.late);
     const status = !todo.length ? `<span class="pos">✓ zapłacony</span>` : open ? `naliczany – ${monthOnly(m)} trwa` : `<span class="neg">do zapłaty do ${shortDay(taxDeadline(m))}</span>${late ? '<span class="tag">po terminie</span>' : ''}`;
     h += `<h3>Za ${esc(monthYear(m))}<span>${zl(tot)}</span></h3><div class="card list">
-      ${list.map(x => `<div class="plrow"><button class="tx" data-act="tax" data-r="${esc(x.rid)}" data-m="${m}"><span class="emo">🏠</span><span class="cbody"><span class="crow"><span class="cname">${esc(x.rname)}</span><span class="amtv">${zl(x.amount)}</span></span><span class="sub">od ${zl(x.base)} · ${x.paid ? `zapłacono ${shortDay(x.rec.paidOn)}` : x.rec.payDate ? `planuję ${shortDay(x.rec.payDate)}` : `domyślnie ${shortDay(taxDefault(m, x.rid))}`}${x.changed ? '<span class="tag w">wpłaty się zmieniły</span>' : ''}</span></span></button>${x.paid ? '<span class="paybtn done">✓</span>' : ''}</div>`).join('')}
+      ${list.map(x => `<div class="plrow"><button class="tx" data-act="tax" data-r="${esc(x.rid)}" data-m="${m}"><span class="emo">${rIcon(D().rentals[x.rid])}</span><span class="cbody"><span class="crow"><span class="cname">${esc(x.rname)}</span><span class="amtv">${zl(x.amount)}</span></span><span class="sub">od ${zl(x.base)} · ${x.paid ? `zapłacono ${shortDay(x.rec.paidOn)}` : x.rec.payDate ? `planuję ${shortDay(x.rec.payDate)}` : `domyślnie ${shortDay(taxDefault(m, x.rid))}`}${x.changed ? '<span class="tag w">wpłaty się zmieniły</span>' : ''}</span></span></button>${x.paid ? '<span class="paybtn done">✓</span>' : ''}</div>`).join('')}
       <div class="kv"><span class="sub" style="font-size:13px">${status}</span>${todo.length && !open && !S.readOnly ? `<button class="paybtn go" data-act="taxpaidm" data-m="${m}">✓ Zapłacone</button>` : ''}</div></div>`;
   }
   return h;
@@ -683,7 +696,7 @@ function taxTabHtml() {
 function settingsHtml() {
   const st = D().settings, rl = rentals();
   const last = lsGet(K.exp);
-  let h = `<h3>Najmy</h3><div class="card list">${rl.map(r => `<button class="rrow" data-act="redit" data-id="${esc(r.id)}"><span class="emo">🏠</span><span class="cbody"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">${esc(r.desc || rentalPeriod(r))}</span></span><span class="amtv">${zl(monthlyTotal(r))}</span></button>`).join('') || '<p class="sub" style="padding:10px 0">Brak najmów.</p>'}</div>
+  let h = `<h3>Najmy</h3><div class="card list">${rl.map(r => `<button class="rrow" data-act="redit" data-id="${esc(r.id)}"><span class="emo">${rIcon(r)}</span><span class="cbody"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">${esc(r.desc || rentalPeriod(r))}</span></span><span class="amtv">${zl(monthlyTotal(r))}</span></button>`).join('') || '<p class="sub" style="padding:10px 0">Brak najmów.</p>'}</div>
   <button class="btn sec" data-act="addrental">+ Dodaj najem</button>
   <h3>Podatek</h3><div class="card">
     <div class="row2"><div><label class="f" style="margin-top:0">Stawka ryczałtu (%)</label><input id="set-rate" inputmode="decimal" value="${esc(String(st.taxRate).replace('.', ','))}"></div>
@@ -743,6 +756,8 @@ function helpHtml() {
     <p>Jeśli najemca płaci Ci opłaty (czynsz do spółdzielni, prąd, media), a Ty przelewasz te same kwoty dalej, zaznacz przy tej pozycji w najmie „przekazuję dalej”. Najemca nadal ma je do zapłaty i widzisz je w „Najemca ma zapłacić”, ale nie liczą się do „Wpłynęło” ani do zysku – w zestawieniu są osobno jako „Opłaty przekazane dalej”. Przelewu do spółdzielni nie musisz wtedy wpisywać jako kosztu. Pole jest też przy jednorazowej należności (np. dopłata za media).</p></details>
   <details class="help"><summary>🔧 Koszty</summary>
     <p>Koszty (naprawy, wyposażenie, ubezpieczenie, czynsz do wspólnoty) dodajesz przyciskiem <b>+</b>. Przy ryczałcie nie zmniejszają podatku – służą do policzenia, ile naprawdę zostaje z najmu („Zostaje” na górze).</p></details>
+  <details class="help"><summary>🎨 Ikony</summary>
+    <p>Ikony dobierają się same według nazwy. Możesz je zmienić: <b>ikonę najmu</b> i <b>ikonę każdej pozycji</b> (Czynsz, Opłaty, Prąd…) w edycji najmu – przycisk z ikoną obok nazwy; ikona pozycji przechodzi na wszystkie jej należności i wpłaty. <b>Ikonę pojedynczego wpisu</b> (np. kosztu) zmienisz w okienku po stuknięciu wpisu. „Automatycznie” przywraca ikonę według nazwy.</p></details>
   <details class="help"><summary>💾 Kopia danych i Excel</summary>
     <p>Dane są tylko w tym telefonie. Odinstalowanie aplikacji lub wyczyszczenie danych Chrome może je usunąć – regularnie wysyłaj raport (Ustawienia → Wyślij raport). To jeden plik HTML: na komputerze otworzysz go jako podgląd, a w telefonie wczytasz przyciskiem „Wczytaj z pliku”.</p>
     <p>Eksport do Excela zawiera wpłaty, podatki, koszty i nieopłacone należności ze wszystkich najmów.</p></details>`;
@@ -788,6 +803,23 @@ function choose(text, options) {
     d.onclick = e => { const b = e.target.closest('[data-r]'); if (!b && e.target !== d) return; d.classList.remove('open'); d.onclick = null; res(b ? Number(b.dataset.r) : -1); };
   });
 }
+/* wybór ikony (jak w Budżecie domowym): najem, pozycja najmu, pojedynczy wpis */
+function openIconPick(ctx, current, auto) {
+  openSheet(head('Wybierz ikonę') + `<button class="btn sec" style="margin-top:4px" data-act="iconset" data-v="">↺ Automatycznie – według nazwy (${auto})</button>
+    ${ICON_PICK.map(([g, list]) => `<label class="f">${g}</label><div class="epick">${list.map(e => `<button class="${e === current ? 'on' : ''}" data-act="iconset" data-v="${e}" aria-label="${e}">${e}</button>`).join('')}</div>`).join('')}
+    <button class="btn sec" data-act="iconset" data-v="__back">Wróć bez zmian</button>`, {iconCtx:ctx});
+}
+function iconPicked(v) {
+  const x = S.sheet && S.sheet.iconCtx; if (!x) return;
+  const set = (o, k) => { if (v) o[k] = v; else delete o[k]; };
+  if (x.for === 'rental' || x.for === 'item') {
+    if (v !== '__back' && S.rd) set(x.for === 'rental' ? S.rd : S.rd.items[x.i], 'icon');
+    renderRentalSheet(); return;
+  }
+  const c = D().charges[x.id]; if (!c) { closeSheet(); return; }
+  if (v !== '__back') { const n = clone(c); set(n, 'icon'); store.saveCharge(n); }
+  if (x.for === 'cost') openCost(x.id); else openCharge(x.id);
+}
 /* wybór miesiąca z listy → 'RRRR-MM' albo undefined (Anuluj) */
 function askMonth(text, months, def, first) {
   return new Promise(res => {
@@ -815,7 +847,7 @@ function openPick() {
   const cur = curR();
   openSheet(head('Najmy') + `<div class="card list" style="margin-top:4px">${rentals().map(r => {
     const due = sum(chargesOf(r.id).filter(isOwed), c => c.amount);
-    return `<button class="rrow ${r.id === cur.id && !showAll() ? 'on' : ''}" data-act="rset" data-id="${esc(r.id)}"><span class="emo">🏠</span><span class="cbody"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">${esc(r.desc || r.tenant || rentalPeriod(r))}</span></span>${due ? `<span class="amtv neg">${zl(due)}</span>` : '<span class="pos">✓</span>'}</button>`;
+    return `<button class="rrow ${r.id === cur.id && !showAll() ? 'on' : ''}" data-act="rset" data-id="${esc(r.id)}"><span class="emo">${rIcon(r)}</span><span class="cbody"><span class="cname">${esc(r.name)}${rentalEnded(r) ? '<span class="tag n">zakończony</span>' : ''}</span><span class="sub">${esc(r.desc || r.tenant || rentalPeriod(r))}</span></span>${due ? `<span class="amtv neg">${zl(due)}</span>` : '<span class="pos">✓</span>'}</button>`;
   }).join('')}${rentals().length > 1 ? `<button class="rrow ${showAll() ? 'on' : ''}" data-act="rset" data-id="${ALL}"><span class="emo">📊</span><span class="cbody"><span class="cname">Wszystkie najmy</span><span class="sub">razem: do zapłaty, podatek, zysk</span></span></button>` : ''}</div>${S.readOnly ? '' : '<button class="btn sec" data-act="addrental">+ Nowy najem</button>'}`);
 }
 
@@ -842,7 +874,7 @@ function renderRentalSheet() {
   const unpaidOld = d.isNew ? [] : chargesOf(d.id).filter(isOldUnpaid);
   const am = it => it.amountTxt !== undefined ? it.amountTxt : toInput(it.amount);
   openSheet(head(d.isNew ? 'Nowy najem' : 'Najem') + `
-    <label class="f">Nazwa</label><input id="rd-name" value="${esc(d.name)}" placeholder="np. Mieszkanie Mokotów">
+    <label class="f">Ikona i nazwa</label><div style="display:flex;gap:6px"><button class="ib emobtn" data-act="iconpick" data-for="rental" aria-label="Zmień ikonę najmu">${rIcon(d)}</button><input id="rd-name" value="${esc(d.name)}" placeholder="np. Mieszkanie Mokotów"></div>
     <label class="f">Czego dotyczy</label><input id="rd-desc" value="${esc(d.desc)}" placeholder="np. kawalerka ul. Lipowa 5/12 + piwnica">
     <label class="f">Najemca</label><input id="rd-tenant" value="${esc(d.tenant)}" placeholder="imię i nazwisko / firma">
     <div class="row2"><div><label class="f">Od</label><input type="date" id="rd-from" value="${esc(d.from)}"></div><div><label class="f">Do (puste = bezterminowo)</label><input type="date" id="rd-to" value="${esc(d.to || '')}"></div></div>
@@ -851,7 +883,7 @@ function renderRentalSheet() {
     <label class="f">🧾 Dzień zapłaty podatku (1–20 następnego miesiąca)</label><input type="number" id="rd-taxday" min="1" max="20" value="${esc(d.taxDay || '')}" placeholder="puste = jak w Ustawieniach (${taxDay()}.)">
     <span class="hint">Przy płatności z góry należność za kolejny miesiąc pojawia się już na początku bieżącego.</span>
     <label class="f">Co miesiąc najemca płaci</label>
-    ${d.items.map((it, i) => `<div class="itrow" data-it="${i}"><input class="itn" value="${esc(it.name)}" placeholder="np. Czynsz najmu"><input class="ita" inputmode="decimal" value="${esc(am(it))}" placeholder="0,00 zł"><button class="ib del" data-act="itdel" data-i="${i}" aria-label="Usuń pozycję">✕</button><label class="chk"><input type="checkbox" class="itt" ${it.taxable ? 'checked' : ''}> liczyć do podatku (${rateLabel()})</label><label class="chk"><input type="checkbox" class="itp" ${it.pass ? 'checked' : ''}> przekazuję dalej (np. do spółdzielni) – nie mój zysk</label></div>`).join('')}
+    ${d.items.map((it, i) => `<div class="itrow" data-it="${i}"><button class="ib emobtn" data-act="iconpick" data-for="item" data-i="${i}" aria-label="Zmień ikonę pozycji">${it.icon || iconFor(it.name, "charge")}</button><input class="itn" value="${esc(it.name)}" placeholder="np. Czynsz najmu"><input class="ita" inputmode="decimal" value="${esc(am(it))}" placeholder="0,00 zł"><button class="ib del" data-act="itdel" data-i="${i}" aria-label="Usuń pozycję">✕</button><label class="chk"><input type="checkbox" class="itt" ${it.taxable ? 'checked' : ''}> liczyć do podatku (${rateLabel()})</label><label class="chk"><input type="checkbox" class="itp" ${it.pass ? 'checked' : ''}> przekazuję dalej (np. do spółdzielni) – nie mój zysk</label></div>`).join('')}
     ${(() => { const hist = d.items.filter(it => (it.prices || []).length).map(it => `${esc(it.name)}: ${it.prices.map(p => (p.from === '0000-00' ? 'wcześniej' : 'od ' + esc(monthYear(p.from))) + ' ' + zl(p.amount)).join(', ')}`); return hist.length ? `<span class="hint">📈 Historia kwot – ${hist.join(' · ')}</span>` : ''; })()}
     <span class="hint">Zmiana kwoty (np. podwyżka): wpisz nową kwotę – przy zapisie wybierzesz, od którego miesiąca obowiązuje. Wpłaty już zapisane się nie zmienią.</span>
     <button class="btn sec" data-act="itadd">+ Dodaj pozycję</button>
@@ -982,7 +1014,7 @@ async function saveRental() {
 function openCharge(id) {
   const c = D().charges[id]; if (!c) return;
   const paid = !!c.paidOn, ro = S.readOnly;
-  openSheet(head(esc(c.name)) + `
+  openSheet(head((ro ? '' : `<button class="ib emobtn" style="margin-right:8px" data-act="iconpick" data-for="charge" data-id="${esc(id)}" aria-label="Zmień ikonę">${iconOf(c)}</button>`) + esc(c.name)) + `
     <p class="sub">${c.kind === 'charge' ? `Należność za ${esc(monthYear(c.m))}` : isDeposit(c) ? 'Kaucja zwrotna – nie jest przychodem ani podstawą podatku' : 'Należność jednorazowa'} · termin ${esc(longDay(dueOf(c)))} · ${esc(D().rentals[c.r]?.name || '')}</p>
     <label class="f">Nazwa</label><input id="pa-name" value="${esc(c.name)}">
     <label class="f">Kwota należna</label><input class="amt" id="pa-amt" inputmode="decimal" value="${esc(toInput(c.amount))}">
@@ -1123,7 +1155,7 @@ function openExtra() {
 function openCost(id) {
   const c = id ? D().charges[id] : {kind:'cost', r:curR().id, name:'', amount:0, d:todayStr(), note:''};
   if (!c) return;
-  openSheet(head(id ? 'Koszt' : 'Nowy koszt') + `
+  openSheet(head(id && !S.readOnly ? `<button class="ib emobtn" style="margin-right:8px" data-act="iconpick" data-for="cost" data-id="${esc(id)}" aria-label="Zmień ikonę">${iconOf(c)}</button>Koszt` : id ? 'Koszt' : 'Nowy koszt') + `
     <label class="f">Kwota</label><input class="amt" id="co-amt" inputmode="decimal" value="${esc(toInput(c.amount))}" placeholder="0,00">
     <label class="f">Za co</label><input id="co-name" value="${esc(c.name)}" placeholder="np. naprawa pralki, ubezpieczenie">
     <label class="f">Data</label><input type="date" id="co-date" value="${esc(c.d)}">
@@ -1420,6 +1452,14 @@ document.addEventListener('click', async e => {
     }
 
     /* należności */
+    case 'iconpick': {
+      if (ds.for === 'rental' || ds.for === 'item') {
+        syncRd(); const it = ds.for === 'item' ? S.rd.items[+ds.i] : null;
+        openIconPick({for:ds.for, i:+ds.i}, it ? it.icon : S.rd.icon, it ? iconFor(it.name, 'charge') : '🏠');
+      } else { const c = D().charges[ds.id]; if (c) openIconPick({for:ds.for, id:c.id}, c.icon, iconFor(c.name, c.kind === 'cost' ? 'cost' : 'charge')); }
+      break;
+    }
+    case 'iconset': iconPicked(ds.v); break;
     case 'depset': openDeposit(ds.id); break;
     case 'ddadd': syncDep(); S.dep.ded.push({name:'', amtTxt:''}); renderDepSheet(); { const r = document.querySelectorAll('.ddn'); r[r.length - 1]?.focus(); } break;
     case 'dddel': syncDep(); S.dep.ded.splice(+ds.i, 1); renderDepSheet(); break;
